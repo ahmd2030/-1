@@ -26,7 +26,7 @@ const storage = app ? getStorage(app) : null as any;
 // Initialize Analytics conditionally (only runs in browser)
 let analytics = null;
 if (typeof window !== 'undefined') {
-  isSupported().then((yes) => yes && (analytics = getAnalytics(app)));
+  isSupported().then((yes) => yes && app && (analytics = getAnalytics(app as any)));
 }
 
 export { app, auth, db, storage, analytics };
