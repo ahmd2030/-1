@@ -218,9 +218,9 @@ export default function NewProductPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <Card className="md:col-span-2 p-6 flex flex-col items-center justify-center bg-muted/30">
             <div id="final-image-container" className="relative w-full max-w-[500px] aspect-[4/5] rounded-xl overflow-hidden shadow-2xl bg-white">
-              {/* Using standard img tag with crossOrigin for html2canvas compatibility */}
+              {/* Using proxy to bypass CORS for html2canvas */}
               <img 
-                src={resultImage} 
+                src={`/api/proxy-image?url=${encodeURIComponent(resultImage)}`} 
                 alt="Generated Model" 
                 crossOrigin="anonymous" 
                 className="absolute inset-0 w-full h-full object-cover" 
