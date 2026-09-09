@@ -21,21 +21,23 @@ export default function NewProductPage() {
     if (!image) return;
     setIsGenerating(true);
     try {
-      // 1. Upload to Firebase Storage
-      const { storage } = await import("@/lib/firebase/config");
-      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-      
-      const fileName = `products/${Date.now()}-${image.file.name}`;
-      const storageRef = ref(storage, fileName);
-      await uploadBytes(storageRef, image.file);
-      const garmentImageUrl = await getDownloadURL(storageRef);
+      // 1. Compress image to avoid Vercel 4.5MB limit
+      const imageCompression = (await import("browser-image-compression")).default;
+      const compressedFile = await imageCompression(image.file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      });
 
-      // 2. Call our API route
+      // 2. Convert to Base64 Data URL
+      const base64DataUrl = await imageCompression.getDataUrlFromFile(compressedFile);
+
+      // 3. Call our API route with Base64
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          garmentImage: garmentImageUrl,
+          garmentImage: base64DataUrl,
           category: "tshirt",
           modelType: "woman",
         }),
