@@ -21,7 +21,7 @@ export default function NewProductPage() {
     if (!image) return;
     setIsGenerating(true);
     try {
-      // 1. Compress image to avoid Vercel 4.5MB limit
+      // 1. Compress image to avoid large uploads
       const imageCompression = (await import("browser-image-compression")).default;
       const compressedFile = await imageCompression(image.file, {
         maxSizeMB: 1,
@@ -29,15 +29,28 @@ export default function NewProductPage() {
         useWebWorker: true,
       });
 
-      // 2. Convert to Base64 Data URL
-      const base64DataUrl = await imageCompression.getDataUrlFromFile(compressedFile);
+      // 2. Upload to Catbox.moe (Free, No API Key, Direct URL)
+      const formData = new FormData();
+      formData.append('reqtype', 'fileupload');
+      formData.append('fileToUpload', compressedFile, 'garment.jpg');
 
-      // 3. Call our API route with Base64
+      const uploadRes = await fetch('https://catbox.moe/user/api.php', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('فشل رفع الصورة إلى الخادم المؤقت');
+      }
+
+      const garmentImageUrl = await uploadRes.text(); // Returns 'https://files.catbox.moe/...'
+
+      // 3. Call our API route with the Real URL
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          garmentImage: base64DataUrl,
+          garmentImage: garmentImageUrl,
           category: "tshirt",
           modelType: "woman",
         }),

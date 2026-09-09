@@ -53,11 +53,12 @@ export class FashnProvider implements AIProvider {
 
       const data = await response.json();
       
+      if (data.error) {
+        console.error("FASHN returned error:", data.error);
+        throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+      }
+
       // FASHN usually returns an ID that needs to be polled, or returns the image directly if synchronous.
-      // Assuming synchronous or an immediate URL return for MVP (update based on real response):
-      // If FASHN returns a polling ID, we would need to poll. 
-      // Let's assume it returns a prediction ID and we must poll it.
-      
       if (data.id) {
         return await this.pollStatus(data.id, apiKey);
       }
@@ -66,6 +67,7 @@ export class FashnProvider implements AIProvider {
       const outputUrl = data.output?.[0] || data.image_url;
       
       if (!outputUrl) {
+        console.error("Unexpected FASHN response:", data);
         throw new Error("Invalid response format from FASHN API");
       }
 
