@@ -8,6 +8,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const inspirationFile = formData.get('inspirationFile') as File | null;
     const category = formData.get('category') as string;
     const modelType = formData.get('modelType') as string;
 
@@ -15,39 +16,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Convert File to Base64
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64String = buffer.toString('base64');
+    // Helper to upload a File to FreeImage.host
+    const uploadToHost = async (f: File) => {
+      const arrayBuffer = await f.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64String = buffer.toString('base64');
+      
+      const uploadFormData = new URLSearchParams();
+      uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+      uploadFormData.append('action', 'upload');
+      uploadFormData.append('source', base64String);
+      uploadFormData.append('format', 'json');
 
-    // Upload to FreeImage.host (Reliable, no CORS issues, fast)
-    const uploadFormData = new URLSearchParams();
-    uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
-    uploadFormData.append('action', 'upload');
-    uploadFormData.append('source', base64String);
-    uploadFormData.append('format', 'json');
+      const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
 
-    const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
-      method: 'POST',
-      body: uploadFormData,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+      if (!uploadRes.ok) throw new Error('فشل رفع الصورة للخادم الوسيط');
+      const data = await uploadRes.json();
+      return data.image.url;
+    };
 
-    if (!uploadRes.ok) {
-      console.error("FreeImage Host error:", await uploadRes.text());
-      return NextResponse.json({ error: 'فشل رفع الصورة للخادم الوسيط' }, { status: 500 });
+    // Upload main product image
+    const finalImageUrl = await uploadToHost(file);
+    console.log("Hosted Product Image URL:", finalImageUrl);
+
+    // Upload inspiration image if provided
+    let finalInspirationUrl;
+    if (inspirationFile) {
+      finalInspirationUrl = await uploadToHost(inspirationFile);
+      console.log("Hosted Inspiration Image URL:", finalInspirationUrl);
     }
-
-    const uploadData = await uploadRes.json();
-    const finalImageUrl = uploadData.image.url;
-
-    console.log("Hosted Image URL:", finalImageUrl);
 
     // Process via AI Router
     const body: AIGenerationOptions = {
       garmentImage: finalImageUrl,
+      modelImage: finalInspirationUrl, // Re-use modelImage as inspiration_image/face_reference
       category,
       modelType,
     };

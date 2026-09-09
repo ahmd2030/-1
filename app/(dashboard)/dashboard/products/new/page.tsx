@@ -12,9 +12,10 @@ import { UploadCloud } from "lucide-react";
 export default function NewProductPage() {
   const [step, setStep] = useState(1);
   const [image, setImage] = useState<{ url: string; file: File } | null>(null);
+  const [inspirationImage, setInspirationImage] = useState<{ url: string; file: File } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<"man" | "woman" | "boy" | "girl">("woman");
+  const [selectedModel, setSelectedModel] = useState<"man" | "woman" | "boy" | "girl">("girl");
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -27,8 +28,24 @@ export default function NewProductPage() {
     }
   }, []);
 
+  const onDropInspiration = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      setInspirationImage({
+        url: URL.createObjectURL(file),
+        file,
+      });
+    }
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    accept: { "image/*": [] },
+    maxFiles: 1,
+  });
+
+  const { getRootProps: getInspirationProps, getInputProps: getInspirationInputProps } = useDropzone({
+    onDrop: onDropInspiration,
     accept: { "image/*": [] },
     maxFiles: 1,
   });
@@ -41,6 +58,10 @@ export default function NewProductPage() {
       formData.append("file", image.file);
       formData.append("category", "one-pieces");
       formData.append("modelType", selectedModel);
+      
+      if (inspirationImage) {
+        formData.append("inspirationFile", inspirationImage.file);
+      }
 
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -67,11 +88,7 @@ export default function NewProductPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">إضافة منتج جديد</h1>
-        <p className="text-muted-foreground">
-          {step === 1 && "قم برفع صورة المنتج الحقيقية (على شماعة أو سطح مستوٍ أو مودل)."}
-          {step === 2 && "اختر إعدادات الموديل والأسلوب للصورة الجديدة."}
-          {step === 3 && "النتيجة النهائية لصورة منتجك."}
-        </p>
+        <p className="text-muted-foreground">اختر إعدادات الموديل والأسلوب للصورة الجديدة.</p>
       </div>
 
       <Card className="p-6">
@@ -83,16 +100,50 @@ export default function NewProductPage() {
           >
             <input {...getInputProps()} />
             <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">اسحب وأفلت صورة المنتج هنا</h3>
-            <p className="text-sm text-muted-foreground mb-4">أو اضغط لاختيار ملف من جهازك</p>
-            <Button variant="secondary">اختيار صورة</Button>
+            <h3 className="text-lg font-medium mb-1">اسحب وأفلت صورة المنتج الحقيقية هنا</h3>
+            <p className="text-sm text-muted-foreground mb-4">مثال: صورة للملابس على علاقة أو سطح مستوٍ</p>
+            <Button variant="secondary">اختيار صورة القطعة</Button>
           </div>
         )}
 
         {step === 2 && image && (
-          <div className="space-y-6">
-            <div className="aspect-square relative max-w-sm mx-auto rounded-xl overflow-hidden border">
-              <Image src={image.url} alt="Product" fill className="object-cover" />
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Product Image Preview */}
+              <div className="space-y-2">
+                <h3 className="font-medium">صورة القطعة (المنتج)</h3>
+                <div className="aspect-square relative rounded-xl overflow-hidden border">
+                  <Image src={image.url} alt="Product" fill className="object-cover" />
+                </div>
+              </div>
+
+              {/* Inspiration Image Upload */}
+              <div className="space-y-2">
+                <h3 className="font-medium flex items-center gap-2">
+                  صورة الإلهام (اختياري)
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">للنتائج الاحترافية</span>
+                </h3>
+                {inspirationImage ? (
+                  <div className="aspect-square relative rounded-xl overflow-hidden border group">
+                    <Image src={inspirationImage.url} alt="Inspiration" fill className="object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Button variant="destructive" size="sm" onClick={() => setInspirationImage(null)}>إزالة الصورة</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    {...getInspirationProps()}
+                    className="aspect-square border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  >
+                    <input {...getInspirationInputProps()} />
+                    <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium">ارفع صورة بستايل يعجبك</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      سيقوم الذكاء بنسخ نفس الإضاءة، الوقفة، والخلفية!
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="space-y-4">
@@ -117,7 +168,14 @@ export default function NewProductPage() {
                   className="flex-1"
                   onClick={() => setSelectedModel("boy")}
                 >
-                  طفل
+                  طفل (ولد)
+                </Button>
+                <Button 
+                  variant={selectedModel === "girl" ? "default" : "outline"} 
+                  className="flex-1"
+                  onClick={() => setSelectedModel("girl")}
+                >
+                  طفلة (بنت)
                 </Button>
               </div>
             </div>
