@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-
+import html2canvas from "html2canvas";
+import { UploadCloud } from "lucide-react";
+import { useDropzone } from "react-dropzone";
+import Image from "next/image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import Image from "next/image";
-import { useDropzone } from "react-dropzone";
-import { UploadCloud } from "lucide-react";
 
 export default function NewProductPage() {
   const [step, setStep] = useState(1);
@@ -16,6 +16,25 @@ export default function NewProductPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<"man" | "woman" | "boy" | "girl">("girl");
+  const [brandName, setBrandName] = useState("Baby Rose");
+  const [promoText, setPromoText] = useState("H2-070\nS.L.X");
+
+  const handleDownload = async () => {
+    const element = document.getElementById('final-image-container');
+    if (!element) return;
+    
+    try {
+      const canvas = await html2canvas(element, { scale: 2 });
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.download = `product-${Date.now()}.jpg`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("تم تحميل الصورة بنجاح!");
+    } catch (err) {
+      toast.error("حدث خطأ أثناء تحميل الصورة");
+    }
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -191,20 +210,73 @@ export default function NewProductPage() {
       </Card>
 
       {step === 3 && resultImage && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">النتيجة الاحترافية</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6">
-            <div className="relative w-full max-w-md aspect-[4/5] rounded-xl overflow-hidden border">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="md:col-span-2 p-6 flex flex-col items-center justify-center bg-muted/30">
+            <div id="final-image-container" className="relative w-full max-w-[500px] aspect-[4/5] rounded-xl overflow-hidden shadow-2xl bg-white">
               <Image src={resultImage} alt="Generated Model" fill className="object-cover" />
+              
+              {/* Text Overlays */}
+              {(brandName || promoText) && (
+                <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none">
+                  {brandName && (
+                    <h2 className="text-4xl font-serif text-slate-800 tracking-wide" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                      {brandName}
+                    </h2>
+                  )}
+                  {promoText && (
+                    <div className="text-right flex flex-col items-end">
+                      {promoText.split('\n').map((line, i) => (
+                        <span key={i} className={`text-slate-800 font-bold ${i === 0 ? 'text-2xl' : 'text-lg'}`}>
+                          {line}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => setStep(2)}>تعديل الإعدادات</Button>
-              <Button>حفظ ونشر</Button>
+          </Card>
+
+          <Card className="p-6 space-y-6">
+            <div>
+              <h3 className="text-xl font-bold mb-1">اللمسات النهائية</h3>
+              <p className="text-sm text-muted-foreground">أضف هوية علامتك التجارية والنصوص الترويجية للصورة.</p>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">اسم البراند (Brand Name)</label>
+                <input 
+                  type="text" 
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  placeholder="مثال: Baby Rose" 
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">النص الدعائي / كود المنتج</label>
+                <textarea 
+                  value={promoText}
+                  onChange={(e) => setPromoText(e.target.value)}
+                  placeholder="مثال: H2-070&#10;S.L.X" 
+                  rows={3}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="pt-6 border-t flex flex-col gap-3">
+              <Button onClick={handleDownload} className="w-full">
+                تحميل الصورة النهائية
+              </Button>
+              <Button variant="outline" onClick={() => setStep(2)} className="w-full">
+                توليد صورة جديدة
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
