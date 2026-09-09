@@ -21,7 +21,7 @@ export default function NewProductPage() {
     if (!image) return;
     setIsGenerating(true);
     try {
-      // 1. Compress image to avoid large uploads
+      // 1. Compress image to avoid Vercel 4.5MB limit
       const imageCompression = (await import("browser-image-compression")).default;
       const compressedFile = await imageCompression(image.file, {
         maxSizeMB: 1,
@@ -29,28 +29,15 @@ export default function NewProductPage() {
         useWebWorker: true,
       });
 
-      // 2. Upload to Catbox.moe (Free, No API Key, Direct URL)
-      const formData = new FormData();
-      formData.append('reqtype', 'fileupload');
-      formData.append('fileToUpload', compressedFile, 'garment.jpg');
+      // 2. Convert to Base64 Data URL
+      const base64DataUrl = await imageCompression.getDataUrlFromFile(compressedFile);
 
-      const uploadRes = await fetch('https://catbox.moe/user/api.php', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('فشل رفع الصورة إلى الخادم المؤقت');
-      }
-
-      const garmentImageUrl = await uploadRes.text(); // Returns 'https://files.catbox.moe/...'
-
-      // 3. Call our API route with the Real URL
+      // 3. Send Base64 to our secure Server API
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          garmentImage: garmentImageUrl,
+          garmentImage: base64DataUrl,
           category: "tshirt",
           modelType: "woman",
         }),
@@ -58,7 +45,7 @@ export default function NewProductPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "فشل توليد الصورة");
+        throw new Error(errorData.error || "فشل توليد الصورة من الخادم");
       }
 
       const data = await res.json();
