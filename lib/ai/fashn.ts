@@ -30,15 +30,16 @@ export class FashnProvider implements AIProvider {
 
     try {
       console.log("Calling FASHN API...");
-      // Always use product-to-model for flat-lay clothing
-      const modelName = 'product-to-model';
+      // If the user provided an inspiration image (modelImage), we MUST use 'tryon-max' to preserve their pose/background.
+      // Otherwise, use 'product-to-model' for fully automated generation.
+      const modelName = options.modelImage ? 'tryon-max' : 'product-to-model';
       
       const inputs: any = {
         product_image: options.garmentImage,
       };
 
       if (options.modelImage) {
-        inputs.inspiration_image = options.modelImage; // Use as inspiration for pose/background/face
+        inputs.model_image = options.modelImage;
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {
