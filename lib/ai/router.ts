@@ -25,7 +25,7 @@ export class AIRouter {
         return await this.secondaryProvider.generate(options);
       }
       
-      throw new Error('All AI providers failed');
+      throw error; // Throw the actual error so it propagates to the UI
     }
   }
 }

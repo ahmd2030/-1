@@ -48,7 +48,9 @@ export class FashnProvider implements AIProvider {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("FASHN API Error Details:", errorText);
-        throw new Error(`FASHN API Error: ${response.status} ${response.statusText}`);
+        let parsedError = errorText;
+        try { parsedError = JSON.parse(errorText).error || errorText; } catch(e) {}
+        throw new Error(`FASHN API Error: ${parsedError}`);
       }
 
       const data = await response.json();
