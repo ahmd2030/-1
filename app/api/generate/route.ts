@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { aiRouter } from '@/lib/ai/router';
 import { AIGenerationOptions } from '@/lib/ai/provider';
 
+export const maxDuration = 60; // Allow up to 60 seconds for FASHN API to finish
+
 export async function POST(request: Request) {
   try {
     const body: AIGenerationOptions = await request.json();

@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Professional Commercial Fashion Photography using AI",
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: {
@@ -15,6 +17,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body className="antialiased min-h-screen">
         {children}
+        <Toaster position="bottom-center" />
       </body>
     </html>
   );
