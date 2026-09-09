@@ -37,11 +37,14 @@ export class FashnProvider implements AIProvider {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model_image: modelImageUrl,
-          garment_image: options.garmentImage,
-          category: fashnCategory,
-          mode: 'quality', // 'quality' uses tryon-max according to standard mappings
-          num_samples: 1,
+          model_name: 'tryon-max', // Or whatever model we are calling
+          inputs: {
+            model_image: modelImageUrl,
+            garment_image: options.garmentImage,
+            category: fashnCategory,
+            mode: 'quality',
+            num_samples: 1,
+          }
         }),
       });
 
