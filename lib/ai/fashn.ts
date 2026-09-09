@@ -30,6 +30,18 @@ export class FashnProvider implements AIProvider {
 
     try {
       console.log("Calling FASHN API...");
+      // If the user provided a model image, use tryon-max.
+      // Otherwise, use product-to-model to generate a completely new realistic model wearing the product!
+      const modelName = options.modelImageUrl ? 'tryon-max' : 'product-to-model';
+      
+      const inputs: any = {
+        product_image: options.garmentImage,
+      };
+
+      if (options.modelImageUrl) {
+        inputs.model_image = options.modelImageUrl;
+      }
+
       const response = await fetch('https://api.fashn.ai/v1/run', {
         method: 'POST',
         headers: {
@@ -37,11 +49,8 @@ export class FashnProvider implements AIProvider {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model_name: 'tryon-max',
-          inputs: {
-            model_image: modelImageUrl,
-            product_image: options.garmentImage, // Fashn uses product_image, not garment_image
-          }
+          model_name: modelName,
+          inputs: inputs
         }),
       });
 
