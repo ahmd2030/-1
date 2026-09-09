@@ -11,10 +11,8 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold">المنتجات</h1>
           <p className="text-muted-foreground">قم بإدارة منتجاتك وتوليد صور احترافية لها.</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/products/new">
-            <Plus className="ml-2 h-4 w-4" /> إضافة منتج جديد
-          </Link>
+        <Button render={<Link href="/dashboard/products/new" />}>
+          <Plus className="ml-2 h-4 w-4" /> إضافة منتج جديد
         </Button>
       </div>
 
@@ -27,10 +25,8 @@ export default function ProductsPage() {
           <p className="text-muted-foreground max-w-sm mb-6">
             قم بإضافة منتجك الأول الآن لتتمكن من توليد صور احترافية باستخدام الذكاء الاصطناعي.
           </p>
-          <Button asChild>
-            <Link href="/dashboard/products/new">
-              إضافة منتج جديد
-            </Link>
+          <Button render={<Link href="/dashboard/products/new" />}>
+            إضافة منتج جديد
           </Button>
         </CardContent>
       </Card>
