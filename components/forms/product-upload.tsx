@@ -3,11 +3,15 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 
-export function ProductUpload() {
+interface ProductUploadProps {
+  onImageSelected: (file: File, previewUrl: string) => void;
+}
+
+export function ProductUpload({ onImageSelected }: ProductUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -15,9 +19,11 @@ export function ProductUpload() {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
+      const url = URL.createObjectURL(selectedFile);
+      setPreview(url);
+      onImageSelected(selectedFile, url);
     }
-  }, []);
+  }, [onImageSelected]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -73,7 +79,6 @@ export function ProductUpload() {
             </div>
             <div className="p-4 bg-muted/50 border-t flex justify-between items-center">
               <span className="text-sm font-medium truncate dir-ltr">{file?.name}</span>
-              <Button>متابعة وتحليل المنتج</Button>
             </div>
           </div>
         )}
