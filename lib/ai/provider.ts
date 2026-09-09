@@ -1,5 +1,6 @@
 export interface AIGenerationOptions {
   garmentImage: string;
+  modelImage?: string; // Optional user-provided model image
   category: string;
   modelType: string; // 'boy', 'girl', 'man', 'woman'
   modelAge?: string;
