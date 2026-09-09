@@ -6,41 +6,51 @@ export const maxDuration = 60; // Allow up to 60 seconds for FASHN API to finish
 
 export async function POST(request: Request) {
   try {
-    const body: AIGenerationOptions = await request.json();
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const category = formData.get('category') as string;
+    const modelType = formData.get('modelType') as string;
 
-    if (!body.garmentImage || !body.category || !body.modelType) {
+    if (!file || !category || !modelType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // If garmentImage is a Base64 string, upload it to a temporary host (Catbox.moe)
-    let finalImageUrl = body.garmentImage;
-    if (finalImageUrl.startsWith('data:image')) {
-      try {
-        console.log("Uploading Base64 image to temporary host from server...");
-        const base64Data = finalImageUrl.split(',')[1];
-        const buffer = Buffer.from(base64Data, 'base64');
-        const blob = new Blob([buffer], { type: 'image/jpeg' });
-        
-        const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', blob, 'garment.jpg');
+    // Convert File to Base64
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64String = buffer.toString('base64');
 
-        const uploadRes = await fetch('https://catbox.moe/user/api.php', {
-          method: 'POST',
-          body: formData,
-        });
+    // Upload to FreeImage.host (Reliable, no CORS issues, fast)
+    const uploadFormData = new URLSearchParams();
+    uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+    uploadFormData.append('action', 'upload');
+    uploadFormData.append('source', base64String);
+    uploadFormData.append('format', 'json');
 
-        if (!uploadRes.ok) throw new Error('Temp upload failed');
-        finalImageUrl = await uploadRes.text();
-        console.log("Temp image hosted at:", finalImageUrl);
-      } catch (err: any) {
-        console.error("Temp image upload error:", err);
-        return NextResponse.json({ error: 'Failed to process image upload' }, { status: 500 });
-      }
+    const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: uploadFormData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!uploadRes.ok) {
+      console.error("FreeImage Host error:", await uploadRes.text());
+      return NextResponse.json({ error: 'فشل رفع الصورة للخادم الوسيط' }, { status: 500 });
     }
 
-    // Process via AI Router with the Hosted URL
-    body.garmentImage = finalImageUrl;
+    const uploadData = await uploadRes.json();
+    const finalImageUrl = uploadData.image.url;
+
+    console.log("Hosted Image URL:", finalImageUrl);
+
+    // Process via AI Router
+    const body: AIGenerationOptions = {
+      garmentImage: finalImageUrl,
+      category,
+      modelType,
+    };
     const result = await aiRouter.generateImage(body);
 
     return NextResponse.json(result);

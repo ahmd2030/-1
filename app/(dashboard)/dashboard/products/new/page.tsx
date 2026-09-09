@@ -21,26 +21,14 @@ export default function NewProductPage() {
     if (!image) return;
     setIsGenerating(true);
     try {
-      // 1. Compress image to avoid Vercel 4.5MB limit
-      const imageCompression = (await import("browser-image-compression")).default;
-      const compressedFile = await imageCompression(image.file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
-      });
+      const formData = new FormData();
+      formData.append("file", image.file);
+      formData.append("category", "tshirt");
+      formData.append("modelType", "woman");
 
-      // 2. Convert to Base64 Data URL
-      const base64DataUrl = await imageCompression.getDataUrlFromFile(compressedFile);
-
-      // 3. Send Base64 to our secure Server API
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          garmentImage: base64DataUrl,
-          category: "tshirt",
-          modelType: "woman",
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
