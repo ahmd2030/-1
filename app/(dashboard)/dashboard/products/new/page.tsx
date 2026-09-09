@@ -21,21 +21,29 @@ export default function NewProductPage() {
     if (!image) return;
     setIsGenerating(true);
     try {
-      // In a real app, you upload the image to Firebase Storage first,
-      // get the URL, and pass it to the API. 
-      // For now, we mock the API call assuming the image is ready.
+      // 1. Upload to Firebase Storage
+      const { storage } = await import("@/lib/firebase/config");
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      
+      const fileName = `products/${Date.now()}-${image.file.name}`;
+      const storageRef = ref(storage, fileName);
+      await uploadBytes(storageRef, image.file);
+      const garmentImageUrl = await getDownloadURL(storageRef);
+
+      // 2. Call our API route
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          garmentImage: "mocked-url-for-now",
+          garmentImage: garmentImageUrl,
           category: "tshirt",
-          modelType: "man",
+          modelType: "woman",
         }),
       });
 
       if (!res.ok) {
-        throw new Error("فشل توليد الصورة");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "فشل توليد الصورة");
       }
 
       const data = await res.json();
