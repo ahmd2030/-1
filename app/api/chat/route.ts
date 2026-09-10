@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -27,14 +27,17 @@ export async function POST(req: Request) {
     );
   }
 
-  // Set the API key in environment for the SDK to pick up
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
+  // Use Google's OpenAI-compatible endpoint — no extra package needed!
+  const google = createOpenAI({
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    apiKey,
+  });
 
   const { messages } = await req.json();
 
   try {
     const result = await streamText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.0-flash'),
       system: SYSTEM,
       messages,
       tools: {
