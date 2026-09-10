@@ -1,6 +1,6 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 import { useState, useRef, useEffect } from "react";
 import { Send, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
