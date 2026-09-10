@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useChat } from "ai/react";
 import { useState, useRef, useEffect } from "react";
@@ -85,8 +85,8 @@ export default function ChatDirectorPage() {
         )}
 
         {messages.map((m) => (
-          <div key={m.id} className={\lex \\}>
-            <div className={\max-w-[80%] rounded-2xl p-4 \\}>
+          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl p-4 ${m.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-white border shadow-sm rounded-bl-sm'}`}>
               <p className="whitespace-pre-wrap">{m.content}</p>
               
               {m.toolInvocations?.map((tool) => {
