@@ -1,98 +1,129 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 60;
 
-const SYSTEM = `You are the "AI Fashion Director" — a professional fashion photographer and creative director working exclusively for Baby Rose studio. You speak Arabic when the user speaks Arabic, and English when they speak English.
+const SYSTEM = `You are the AI Fashion Director — a professional fashion photographer and creative director for Baby Rose studio. You speak Arabic when the user speaks Arabic.
 
-YOUR PERSONALITY:
-- Creative, enthusiastic, and professional like a world-class fashion director.
-- Use expert terminology (soft lighting, satin, boho, summer vibe, editorial, flat-lay, etc.)
-- When users send you images, analyze them with an expert eye: fabric quality, color palette, season suitability, styling suggestions.
+YOUR PERSONALITY: Creative, enthusiastic, professional like a world-class fashion director. Use expert terminology (soft lighting, satin, boho, summer vibe, editorial, flat-lay, etc.). When users send images, analyze them with an expert eye.
 
 STRICT RULES:
-1. You ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design, montage, brand identity, seasonal trends.
-2. If asked about ANYTHING else politely say in Arabic: "انا متخصص فقط في عالم الازياء — كيف يمكنني مساعدتك في هذا المجال؟"
-3. When you need info about latest trends, use the webSearch tool first, then answer.
-4. When user wants to generate professional photos, gather all details then trigger the generateFashionImages tool.
-5. You have full memory of this conversation — refer back to previous messages when relevant.`;
+1. ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design, montage, brand identity, seasonal trends.
+2. If asked about ANYTHING else say in Arabic: "انا متخصص فقط في عالم الازياء — كيف يمكنني مساعدتك؟"
+3. You have full memory of this conversation.
+4. Be creative, inspiring, and very helpful.`;
 
 export async function POST(req: Request) {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  // Try Gemini first, fallback to OpenAI if available
-  let model: any;
-
-  if (geminiKey) {
-    const google = createOpenAI({
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-      apiKey: geminiKey,
-    });
-    model = google('gemini-1.5-flash');
-  } else if (openaiKey) {
-    const openai = createOpenAI({ apiKey: openaiKey });
-    model = openai('gpt-4o-mini');
-  } else {
+  if (!apiKey) {
     return Response.json(
-      { error: 'لا يوجد مفتاح API. أضف GEMINI_API_KEY في إعدادات Vercel ثم أعد النشر.' },
+      { error: 'GEMINI_API_KEY is missing. Add it to Vercel Environment Variables then redeploy.' },
       { status: 500 }
     );
   }
 
   const { messages } = await req.json();
 
+  // Convert AI SDK message format to Google Generative AI format
+  const googleContents = messages
+    .filter((m: any) => m.role === 'user' || m.role === 'assistant')
+    .map((m: any) => {
+      const parts: any[] = [];
+      if (typeof m.content === 'string') {
+        parts.push({ text: m.content });
+      } else if (Array.isArray(m.content)) {
+        for (const part of m.content) {
+          if (part.type === 'text') parts.push({ text: part.text });
+          if (part.type === 'image_url') {
+            parts.push({
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: part.image_url.url, // URL as-is (Google accepts URLs too)
+              },
+            });
+          }
+        }
+      }
+      return {
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: parts.length > 0 ? parts : [{ text: '' }],
+      };
+    });
+
   try {
-    const result = await streamText({
-      model,
-      system: SYSTEM,
-      messages,
-      tools: {
-        webSearch: tool({
-          description: 'Search the web for the latest fashion trends, seasonal colors, or fashion-related information.',
-          parameters: z.object({
-            query: z.string().describe('Search query in English or Arabic'),
-          }),
-          execute: async ({ query }) => {
-            const tavilyKey = process.env.TAVILY_API_KEY;
-            if (!tavilyKey) return { error: 'Web search not configured.' };
-            try {
-              const res = await fetch('https://api.tavily.com/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ api_key: tavilyKey, query, max_results: 5 }),
-              });
-              const data = await res.json();
-              return {
-                results: data.results?.map((r: any) => ({
-                  title: r.title,
-                  content: r.content?.slice(0, 400),
-                  url: r.url,
-                })) ?? [],
-              };
-            } catch {
-              return { error: 'Search failed.' };
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: SYSTEM }],
+          },
+          contents: googleContents,
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 2048,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Google API error:', errorText);
+      return Response.json({ error: `Google API: ${response.status} ${errorText.slice(0, 200)}` }, { status: 500 });
+    }
+
+    // Stream response back in AI SDK v3 data stream format
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr === '[DONE]') continue;
+
+              try {
+                const data = JSON.parse(jsonStr);
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                  // AI SDK v3 streaming format: 0:"text"\n
+                  controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
+                }
+              } catch {
+                // Skip malformed JSON lines
+              }
             }
-          },
-        }),
-        generateFashionImages: tool({
-          description: 'Trigger professional AI image generation after agreeing with the user on all details.',
-          parameters: z.object({
-            imageUrls: z.array(z.string()),
-            brandName: z.string().optional(),
-            promoText: z.string().optional(),
-            modelType: z.enum(['boy', 'girl', 'man', 'woman']),
-            stylePrompt: z.string().optional(),
-          }),
-          execute: async (args) => {
-            return { status: 'ready', details: args };
-          },
-        }),
+          }
+        } finally {
+          // Send finish event
+          controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
+          controller.close();
+        }
       },
     });
 
-    return result.toDataStreamResponse();
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+        'Cache-Control': 'no-cache',
+      },
+    });
   } catch (err: any) {
     const msg = err?.message || 'Unknown error';
     console.error('Chat API error:', msg);
