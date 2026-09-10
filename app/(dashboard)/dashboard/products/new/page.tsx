@@ -21,8 +21,16 @@ export default function ChatDirectorPage() {
   }, [messages]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    // Use FileReader instead of Buffer (Buffer is Node.js only, not available in browser)
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]); // Remove "data:image/...;base64," prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
     const body = new URLSearchParams();
     body.append("key", "6d207e02198a847aa98d0a2a901485a5");
     body.append("action", "upload");
