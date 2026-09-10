@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function ChatDirectorPage() {
-  const { messages, append, isLoading } = useChat({ api: "/api/chat" });
+  const { messages, append, isLoading, error } = useChat({
+    api: "/api/chat",
+    onError: (err) => {
+      console.error("Chat error:", err);
+      toast.error(`خطأ في المحادثة: ${err.message || "تأكد من إعداد OPENAI_API_KEY في Vercel"}`);
+    },
+  });
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
@@ -119,6 +125,15 @@ export default function ChatDirectorPage() {
           <span className="text-xs text-slateald-400">GPT-4o</span>
         </div>
       </div>
+      {/* Error Banner */}
+      {error && (
+        <div className="px-5 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center gap-2" dir="rtl">
+          <span>⚠️</span>
+          <span>{error.message.includes("API key") || error.message.includes("401") 
+            ? "مفتاح OpenAI غير صحيح أو غير موجود. تأكد من إضافة OPENAI_API_KEY في إعدادات Vercel."
+            : `خطأ: ${error.message}`}</span>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50" dir="rtl">
