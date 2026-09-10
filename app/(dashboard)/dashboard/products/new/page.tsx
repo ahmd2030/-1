@@ -78,7 +78,8 @@ export default function ChatDirectorPage() {
     setAttachments([]);
     setUploadedUrls([]);
 
-    await append({ role: "user", content });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await append({ role: "user", content: content as any });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
