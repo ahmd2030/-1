@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -13,36 +13,33 @@ YOUR PERSONALITY:
 
 STRICT RULES:
 1. You ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design, montage, brand identity, seasonal trends.
-2. If asked about ANYTHING else politely say: "I'm specialized exclusively in fashion and design — how can I help you in that area?"
+2. If asked about ANYTHING else politely say in Arabic: "أنا متخصص فقط في عالم الأزياء — كيف يمكنني مساعدتك في هذا المجال؟"
 3. When you need info about latest trends or seasonal colors, use the webSearch tool first, then answer.
-4. When user sends images and wants to generate professional photos, gather all details (brand name, model type, style, promo text) then trigger the generateFashionImages tool.
+4. When user sends images and wants to generate professional photos, gather all details then trigger the generateFashionImages tool.
 5. You have full memory of this conversation — refer back to previous messages when relevant.`;
 
 export async function POST(req: Request) {
-  // Explicit API key check for clear error messages
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return Response.json(
-      { error: 'OPENAI_API_KEY is missing from Vercel environment variables. Go to Vercel > Settings > Environment Variables and add it, then redeploy.' },
+      { error: 'GEMINI_API_KEY is missing. Add it to Vercel Environment Variables then redeploy.' },
       { status: 500 }
     );
   }
 
   const { messages } = await req.json();
-
-  // Explicitly pass the API key to avoid any env reading issues
-  const openai = createOpenAI({ apiKey });
+  const google = createGoogleGenerativeAI({ apiKey });
 
   try {
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: google('gemini-2.0-flash'),
       system: SYSTEM,
       messages,
       tools: {
         webSearch: tool({
           description: 'Search the web for the latest fashion trends, seasonal colors, or fashion-related information.',
           parameters: z.object({
-            query: z.string().describe('Search query'),
+            query: z.string().describe('Search query in English or Arabic'),
           }),
           execute: async ({ query }) => {
             const tavilyKey = process.env.TAVILY_API_KEY;
@@ -87,10 +84,6 @@ export async function POST(req: Request) {
     return result.toDataStreamResponse();
   } catch (err: any) {
     const msg = err?.message || 'Unknown error';
-    const isAuthError = msg.includes('401') || msg.includes('auth') || msg.includes('API key');
-    return Response.json(
-      { error: isAuthError ? 'OpenAI API key is invalid or has no credit. Check your key at platform.openai.com' : msg },
-      { status: 500 }
-    );
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
