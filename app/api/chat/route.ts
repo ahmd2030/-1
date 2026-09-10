@@ -19,25 +19,33 @@ STRICT RULES:
 5. You have full memory of this conversation — refer back to previous messages when relevant.`;
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+
+  // Try Gemini first, fallback to OpenAI if available
+  let model: any;
+
+  if (geminiKey) {
+    const google = createOpenAI({
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      apiKey: geminiKey,
+    });
+    model = google('gemini-1.5-flash');
+  } else if (openaiKey) {
+    const openai = createOpenAI({ apiKey: openaiKey });
+    model = openai('gpt-4o-mini');
+  } else {
     return Response.json(
-      { error: 'GEMINI_API_KEY is missing. Add it to Vercel Environment Variables then redeploy.' },
+      { error: 'لا يوجد مفتاح API. أضف GEMINI_API_KEY في إعدادات Vercel ثم أعد النشر.' },
       { status: 500 }
     );
   }
-
-  // Use Google's OpenAI-compatible endpoint — no extra package needed!
-  const google = createOpenAI({
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    apiKey,
-  });
 
   const { messages } = await req.json();
 
   try {
     const result = await streamText({
-      model: google('gemini-2.0-flash'),
+      model,
       system: SYSTEM,
       messages,
       tools: {
@@ -48,9 +56,7 @@ export async function POST(req: Request) {
           }),
           execute: async ({ query }) => {
             const tavilyKey = process.env.TAVILY_API_KEY;
-            if (!tavilyKey) {
-              return { error: 'Web search not configured. Add TAVILY_API_KEY to Vercel.' };
-            }
+            if (!tavilyKey) return { error: 'Web search not configured.' };
             try {
               const res = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
@@ -89,6 +95,7 @@ export async function POST(req: Request) {
     return result.toDataStreamResponse();
   } catch (err: any) {
     const msg = err?.message || 'Unknown error';
+    console.error('Chat API error:', msg);
     return Response.json({ error: msg }, { status: 500 });
   }
 }
