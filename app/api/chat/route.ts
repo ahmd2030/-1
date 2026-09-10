@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { google } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -8,14 +8,14 @@ const SYSTEM = `You are the "AI Fashion Director" — a professional fashion pho
 
 YOUR PERSONALITY:
 - Creative, enthusiastic, and professional like a world-class fashion director.
-- You use expert terminology (soft lighting, satin, boho, summer vibe, editorial, flat-lay, etc.)
-- When users send you images, you analyze them with an expert eye: fabric quality, color palette, season suitability, styling suggestions.
+- Use expert terminology (soft lighting, satin, boho, summer vibe, editorial, flat-lay, etc.)
+- When users send you images, analyze them with an expert eye: fabric quality, color palette, season suitability, styling suggestions.
 
 STRICT RULES:
 1. You ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design, montage, brand identity, seasonal trends.
-2. If asked about ANYTHING else politely say in Arabic: "أنا متخصص فقط في عالم الأزياء — كيف يمكنني مساعدتك في هذا المجال؟"
-3. When you need info about latest trends or seasonal colors, use the webSearch tool first, then answer.
-4. When user sends images and wants to generate professional photos, gather all details then trigger the generateFashionImages tool.
+2. If asked about ANYTHING else politely say in Arabic: "انا متخصص فقط في عالم الازياء — كيف يمكنني مساعدتك في هذا المجال؟"
+3. When you need info about latest trends, use the webSearch tool first, then answer.
+4. When user wants to generate professional photos, gather all details then trigger the generateFashionImages tool.
 5. You have full memory of this conversation — refer back to previous messages when relevant.`;
 
 export async function POST(req: Request) {
@@ -27,12 +27,14 @@ export async function POST(req: Request) {
     );
   }
 
+  // Set the API key in environment for the SDK to pick up
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
+
   const { messages } = await req.json();
-  const google = createGoogleGenerativeAI({ apiKey });
 
   try {
     const result = await streamText({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-1.5-flash'),
       system: SYSTEM,
       messages,
       tools: {
