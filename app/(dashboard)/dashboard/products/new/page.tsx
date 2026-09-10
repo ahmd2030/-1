@@ -1,294 +1,183 @@
-"use client";
+﻿"use client";
 
-import { useState, useCallback } from "react";
-import html2canvas from "html2canvas";
-import { UploadCloud } from "lucide-react";
-import { useDropzone } from "react-dropzone";
+import { useChat } from "ai/react";
+import { useState, useRef, useEffect } from "react";
+import { Send, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function NewProductPage() {
-  const [step, setStep] = useState(1);
-  const [image, setImage] = useState<{ url: string; file: File } | null>(null);
-  const [inspirationImage, setInspirationImage] = useState<{ url: string; file: File } | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [resultImage, setResultImage] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<"man" | "woman" | "boy" | "girl">("girl");
-  const [brandName, setBrandName] = useState("Baby Rose");
-  const [promoText, setPromoText] = useState("H2-070\nS.L.X");
+export default function ChatDirectorPage() {
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat();
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleDownload = async () => {
-    const element = document.getElementById('final-image-container');
-    if (!element) return;
-    
-    try {
-      const canvas = await html2canvas(element, { 
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
-      });
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      const link = document.createElement('a');
-      link.download = `product-${Date.now()}.jpg`;
-      link.href = dataUrl;
-      link.click();
-      toast.success("تم تحميل الصورة بنجاح!");
-    } catch (err) {
-      toast.error("حدث خطأ أثناء تحميل الصورة");
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setAttachments(prev => [...prev, ...files]);
+      
+      const newUrls = await Promise.all(files.map(async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64String = Buffer.from(arrayBuffer).toString('base64');
+        const formData = new URLSearchParams();
+        formData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+        formData.append('action', 'upload');
+        formData.append('source', base64String);
+        formData.append('format', 'json');
+        
+        try {
+          const res = await fetch('https://freeimage.host/api/1/upload', {
+            method: 'POST',
+            body: formData,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          });
+          const data = await res.json();
+          return data.image.url;
+        } catch (error) {
+          console.error("Upload failed", error);
+          return null;
+        }
+      }));
+      
+      setAttachmentUrls(prev => [...prev, ...(newUrls.filter(Boolean) as string[])]);
     }
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      setImage({
-        url: URL.createObjectURL(file),
-        file,
-      });
-      setStep(2);
-    }
-  }, []);
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input && attachmentUrls.length === 0) return;
 
-  const onDropInspiration = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      setInspirationImage({
-        url: URL.createObjectURL(file),
-        file,
-      });
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { "image/*": [] },
-    maxFiles: 1,
-  });
-
-  const { getRootProps: getInspirationProps, getInputProps: getInspirationInputProps } = useDropzone({
-    onDrop: onDropInspiration,
-    accept: { "image/*": [] },
-    maxFiles: 1,
-  });
-
-  const handleGenerate = async () => {
-    if (!image) return;
-    setIsGenerating(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", image.file);
-      formData.append("category", "one-pieces");
-      formData.append("modelType", selectedModel);
-      
-      if (inspirationImage) {
-        formData.append("inspirationFile", inspirationImage.file);
-      }
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "فشل توليد الصورة من الخادم");
-      }
-
-      const data = await res.json();
-      setResultImage(data.imageUrl);
-      setStep(3);
-      toast.success("تم التوليد بنجاح!");
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsGenerating(false);
-    }
+    handleSubmit(e, {
+      data: { images: attachmentUrls }
+    });
+    setAttachments([]);
+    setAttachmentUrls([]);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">إضافة منتج جديد</h1>
-        <p className="text-muted-foreground">اختر إعدادات الموديل والأسلوب للصورة الجديدة.</p>
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto border rounded-2xl overflow-hidden bg-white shadow-sm">
+      <div className="p-4 border-b bg-muted/30 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <Sparkles className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="font-bold text-lg">المخرج الذكي (AI Director)</h2>
+          <p className="text-xs text-muted-foreground">مساعدك الشخصي لتوليد وإخراج صور منتجاتك</p>
+        </div>
       </div>
 
-      <Card className="p-6">
-        {step === 1 && (
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors
-              ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}`}
-          >
-            <input {...getInputProps()} />
-            <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">اسحب وأفلت صورة المنتج الحقيقية هنا</h3>
-            <p className="text-sm text-muted-foreground mb-4">مثال: صورة للملابس على علاقة أو سطح مستوٍ</p>
-            <Button variant="secondary">اختيار صورة القطعة</Button>
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50" style={{ direction: 'rtl' }}>
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+            <Sparkles className="w-12 h-12 text-primary/20 mb-4" />
+            <h3 className="text-xl font-bold mb-2 text-slate-700">أهلاً بك في استوديو الذكاء الاصطناعي</h3>
+            <p className="max-w-md">
+              قم برفع صور منتجاتك (حتى 10 صور)، وأخبرني كيف تريد إخراجها! 
+              <br/>مثال: "أضف شعار بي بي روز بالوردي ومقاس 10-18 للصور المرفقة بستايل صيفي."
+            </p>
           </div>
         )}
 
-        {step === 2 && image && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Product Image Preview */}
-              <div className="space-y-2">
-                <h3 className="font-medium">صورة القطعة (المنتج)</h3>
-                <div className="aspect-square relative rounded-xl overflow-hidden border">
-                  <Image src={image.url} alt="Product" fill className="object-cover" />
-                </div>
-              </div>
-
-              {/* Inspiration Image Upload */}
-              <div className="space-y-2">
-                <h3 className="font-medium flex items-center gap-2">
-                  صورة الإلهام (اختياري)
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">للنتائج الاحترافية</span>
-                </h3>
-                {inspirationImage ? (
-                  <div className="aspect-square relative rounded-xl overflow-hidden border group">
-                    <Image src={inspirationImage.url} alt="Inspiration" fill className="object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button variant="destructive" size="sm" onClick={() => setInspirationImage(null)}>إزالة الصورة</Button>
+        {messages.map((m) => (
+          <div key={m.id} className={\lex \\}>
+            <div className={\max-w-[80%] rounded-2xl p-4 \\}>
+              <p className="whitespace-pre-wrap">{m.content}</p>
+              
+              {m.toolInvocations?.map((tool) => {
+                if (tool.toolName === 'generateFashionImages') {
+                  return (
+                    <div key={tool.toolCallId} className="mt-4 p-4 border rounded-xl bg-slate-50 text-slate-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        <span className="font-medium text-sm">جاري التجهيز للتوليد...</span>
+                      </div>
+                      <div className="text-xs text-slate-500 bg-slate-100 p-2 rounded">
+                        <strong>البراند:</strong> {tool.args.brandName || 'بدون'}<br/>
+                        <strong>النص:</strong> {tool.args.promoText || 'بدون'}<br/>
+                        <strong>العدد:</strong> {tool.args.imageUrls?.length || 0} صور
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div
-                    {...getInspirationProps()}
-                    className="aspect-square border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  >
-                    <input {...getInspirationInputProps()} />
-                    <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium">ارفع صورة بستايل يعجبك</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      سيقوم الذكاء بنسخ نفس الإضاءة، الوقفة، والخلفية!
-                    </p>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white border shadow-sm rounded-2xl rounded-bl-sm p-4 flex gap-2 items-center text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">المخرج يفكر...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 bg-white border-t" style={{ direction: 'rtl' }}>
+        {attachments.length > 0 && (
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+            {attachments.map((file, i) => (
+              <div key={i} className="relative w-16 h-16 rounded-md overflow-hidden border flex-shrink-0">
+                <img src={URL.createObjectURL(file)} alt="attachment" className="object-cover w-full h-full" />
+                {attachmentUrls.length <= i && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
                   </div>
                 )}
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg">إعدادات الموديل</h3>
-              <div className="flex gap-4">
-                <Button 
-                  variant={selectedModel === "man" ? "default" : "outline"} 
-                  className="flex-1"
-                  onClick={() => setSelectedModel("man")}
-                >
-                  رجل
-                </Button>
-                <Button 
-                  variant={selectedModel === "woman" ? "default" : "outline"} 
-                  className="flex-1"
-                  onClick={() => setSelectedModel("woman")}
-                >
-                  امرأة
-                </Button>
-                <Button 
-                  variant={selectedModel === "boy" ? "default" : "outline"} 
-                  className="flex-1"
-                  onClick={() => setSelectedModel("boy")}
-                >
-                  طفل (ولد)
-                </Button>
-                <Button 
-                  variant={selectedModel === "girl" ? "default" : "outline"} 
-                  className="flex-1"
-                  onClick={() => setSelectedModel("girl")}
-                >
-                  طفلة (بنت)
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t">
-              <Button variant="ghost" onClick={() => setStep(1)}>رجوع</Button>
-              <Button onClick={handleGenerate} disabled={isGenerating}>
-                {isGenerating ? "جاري التوليد..." : "توليد الصورة الاحترافية"}
-              </Button>
-            </div>
+            ))}
           </div>
         )}
-      </Card>
-
-      {step === 3 && resultImage && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="md:col-span-2 p-6 flex flex-col items-center justify-center bg-muted/30">
-            <div id="final-image-container" className="relative w-full max-w-[500px] aspect-[4/5] rounded-xl overflow-hidden shadow-2xl bg-white">
-              {/* Using proxy to bypass CORS for html2canvas */}
-              <img 
-                src={`/api/proxy-image?url=${encodeURIComponent(resultImage)}`} 
-                alt="Generated Model" 
-                crossOrigin="anonymous" 
-                className="absolute inset-0 w-full h-full object-cover" 
-              />
-              
-              {/* Text Overlays */}
-              {(brandName || promoText) && (
-                <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none">
-                  {brandName && (
-                    <h2 className="text-4xl font-serif text-slate-800 tracking-wide" style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
-                      {brandName}
-                    </h2>
-                  )}
-                  {promoText && (
-                    <div className="text-right flex flex-col items-end">
-                      {promoText.split('\n').map((line, i) => (
-                        <span key={i} className={`text-slate-800 font-bold ${i === 0 ? 'text-2xl' : 'text-lg'}`}>
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-6">
-            <div>
-              <h3 className="text-xl font-bold mb-1">اللمسات النهائية</h3>
-              <p className="text-sm text-muted-foreground">أضف هوية علامتك التجارية والنصوص الترويجية للصورة.</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">اسم البراند (Brand Name)</label>
-                <input 
-                  type="text" 
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  placeholder="مثال: Baby Rose" 
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">النص الدعائي / كود المنتج</label>
-                <textarea 
-                  value={promoText}
-                  onChange={(e) => setPromoText(e.target.value)}
-                  placeholder="مثال: H2-070&#10;S.L.X" 
-                  rows={3}
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="pt-6 border-t flex flex-col gap-3">
-              <Button onClick={handleDownload} className="w-full">
-                تحميل الصورة النهائية
-              </Button>
-              <Button variant="outline" onClick={() => setStep(2)} className="w-full">
-                توليد صورة جديدة
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+        <form onSubmit={onSubmit} className="flex gap-2 items-end">
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="icon"
+            className="shrink-0 h-12 w-12 rounded-xl"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlus className="w-5 h-5 text-slate-600" />
+          </Button>
+          <div className="flex-1 relative">
+            <textarea
+              value={input}
+              onChange={handleInputChange}
+              placeholder="تحدث مع المخرج... (ارفع الصور واطلب ما تشاء)"
+              className="w-full min-h-[48px] max-h-32 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  // @ts-ignore
+                  onSubmit(e as any);
+                }
+              }}
+            />
+          </div>
+          <Button 
+            type="submit" 
+            disabled={isLoading || (input.length === 0 && attachmentUrls.length === 0)}
+            className="shrink-0 h-12 w-12 rounded-xl"
+          >
+            <Send className="w-5 h-5" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
