@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     system: 'أنت مساعد ذكي مخرج أزياء محترف لموقع Baby Rose. اسمك المخرج الذكي. مهمتك هي مساعدة المستخدمين في توليد صور احترافية لملابس الأطفال وغيرها. عندما يرفع المستخدم صور ويطلب تعديلات (إضافة شعار، تغيير الموديل، تحديد المقاس)، قم بتحليل طلبه بلطف واحترافية. اسأله أسئلة توضيحية إذا لزم الأمر. بمجرد أن تتفقا على التفاصيل، قم بتشغيل أداة توليد الصور.',
     messages,
     tools: {
-      generateFashionImages: {
+      generateFashionImages: tool({
         description: 'قم بتشغيل هذه الأداة لبدء توليد الصور بعد الاتفاق مع المستخدم على التفاصيل',
         parameters: z.object({
           imageUrls: z.array(z.string()),
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         execute: async (args) => {
           return { status: 'starting_generation', details: args };
         }
-      }
+      })
     }
   });
 
