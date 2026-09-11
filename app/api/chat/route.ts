@@ -27,19 +27,32 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Manually convert to CoreMessage[] since useChat sends content as an array for images
-  const coreMessages = messages.map((m: any) => {
+  // Google's Gemini OpenAI endpoint does not support external HTTP URLs, so we must fetch and convert to base64
+  const coreMessages = await Promise.all(messages.map(async (m: any) => {
     if (Array.isArray(m.content)) {
-      return {
-        role: m.role,
-        content: m.content.map((part: any) => {
-          if (part.type === 'text') return { type: 'text', text: part.text };
-          if (part.type === 'image_url') return { type: 'image', image: new URL(part.image_url.url) };
-          return part;
-        }),
-      };
+      const content = await Promise.all(m.content.map(async (part: any) => {
+        if (part.type === 'text') return { type: 'text', text: part.text };
+        if (part.type === 'image_url') {
+          let url = part.image_url.url;
+          if (url.startsWith('http')) {
+            try {
+              const res = await fetch(url);
+              const arrayBuffer = await res.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              const mimeType = res.headers.get('content-type') || 'image/jpeg';
+              url = `data:${mimeType};base64,${buffer.toString('base64')}`;
+            } catch (e) {
+              console.error('Failed to fetch image for base64 conversion', e);
+            }
+          }
+          return { type: 'image', image: url };
+        }
+        return part;
+      }));
+      return { role: m.role, content };
     }
     return m;
-  });
+  }));
 
   const google = createOpenAI({
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
@@ -126,8 +139,11 @@ export async function POST(req: Request) {
 
     return result.toDataStreamResponse();
   } catch (err: any) {
-    const msg = err?.message || 'Unknown error';
-    console.error('Chat API error:', msg);
+    let msg = err?.message || 'Unknown error';
+    if (err?.value || err?.cause) {
+      msg += ` | Details: ${JSON.stringify(err.value || err.cause)}`;
+    }
+    console.error('Chat API error:', err);
     return Response.json({ error: msg }, { status: 500 });
   }
 }
