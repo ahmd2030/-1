@@ -26,6 +26,21 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
+  // Manually convert to CoreMessage[] since useChat sends content as an array for images
+  const coreMessages = messages.map((m: any) => {
+    if (Array.isArray(m.content)) {
+      return {
+        role: m.role,
+        content: m.content.map((part: any) => {
+          if (part.type === 'text') return { type: 'text', text: part.text };
+          if (part.type === 'image_url') return { type: 'image', image: new URL(part.image_url.url) };
+          return part;
+        }),
+      };
+    }
+    return m;
+  });
+
   const google = createOpenAI({
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     apiKey,
@@ -35,7 +50,7 @@ export async function POST(req: Request) {
     const result = await streamText({
       model: google('gemini-flash-latest'),
       system: SYSTEM,
-      messages,
+      messages: coreMessages,
       tools: {
         webSearch: tool({
           description: 'Search the web for the latest fashion trends, seasonal colors, or fashion-related information.',
