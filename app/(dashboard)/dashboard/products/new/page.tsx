@@ -122,7 +122,7 @@ export default function ChatDirectorPage() {
         </div>
         <div className="mr-auto flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-slate-400">Gemini 3.0 Flash</span>
+          <span className="text-xs text-slate-400">Gemini Flash</span>
         </div>
       </div>
       {/* Error Banner */}
