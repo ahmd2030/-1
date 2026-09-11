@@ -106,7 +106,7 @@ export async function POST(req: Request) {
                 modelImage,
                 category: 'tops', // default category
                 modelType: args.modelType,
-                prompt: args.stylePrompt,
+                style: args.stylePrompt,
               });
 
               return {
