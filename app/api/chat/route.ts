@@ -89,7 +89,36 @@ export async function POST(req: Request) {
             stylePrompt: z.string().optional(),
           }),
           execute: async (args) => {
-            return { status: 'ready', details: args };
+            const { FashnProvider } = await import('@/lib/ai/fashn');
+            const provider = new FashnProvider();
+            
+            // Assume the first image is the product, and second (if exists) is inspiration
+            const garmentImage = args.imageUrls[0];
+            const modelImage = args.imageUrls[1];
+            
+            if (!garmentImage) {
+              return { error: 'لا يوجد صورة منتج. يرجى رفع صورة المنتج أولاً.' };
+            }
+
+            try {
+              const result = await provider.generate({
+                garmentImage,
+                modelImage,
+                category: 'tops', // default category
+                modelType: args.modelType,
+                prompt: args.stylePrompt,
+              });
+
+              return {
+                status: 'success',
+                imageUrl: result.imageUrl,
+                brandName: args.brandName,
+                promoText: args.promoText,
+                message: 'تم توليد الصورة بنجاح!'
+              };
+            } catch (error: any) {
+              return { status: 'error', error: error.message };
+            }
           },
         }),
       },

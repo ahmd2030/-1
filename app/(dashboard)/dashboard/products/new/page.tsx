@@ -188,7 +188,25 @@ export default function ChatDirectorPage() {
                         </ul>
                       )}
                       {t.state === "result" && t.toolName === "generateFashionImages" && (
-                        <p className="text-xs text-green-600 mt-1">✓ تم استلام طلب التوليد — جاري المعالجة...</p>
+                        <div className="mt-2">
+                          {t.result?.error ? (
+                            <p className="text-xs text-red-600">❌ خطأ: {t.result.error}</p>
+                          ) : t.result?.imageUrl ? (
+                            <div className="flex flex-col gap-2">
+                              <p className="text-xs text-green-600 font-medium">✨ تم توليد الصورة بنجاح!</p>
+                              <img 
+                                src={t.result.imageUrl} 
+                                alt="Generated Fashion" 
+                                className="rounded-lg border shadow-sm max-w-full h-auto max-h-80 object-cover" 
+                              />
+                              {t.result.brandName && (
+                                <p className="text-xs text-slate-500 text-center italic mt-1">{t.result.brandName}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-green-600 mt-1">✓ تم استلام طلب التوليد — جاري المعالجة...</p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
