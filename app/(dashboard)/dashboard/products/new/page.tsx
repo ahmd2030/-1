@@ -27,29 +27,15 @@ export default function ChatDirectorPage() {
   }, [messages]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
-    // Use FileReader instead of Buffer (Buffer is Node.js only, not available in browser)
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(",")[1]); // Remove "data:image/...;base64," prefix
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    const body = new URLSearchParams();
-    body.append("key", "6d207e02198a847aa98d0a2a901485a5");
-    body.append("action", "upload");
-    body.append("source", base64);
-    body.append("format", "json");
+    const formData = new FormData();
+    formData.append("file", file);
     try {
-      const res = await fetch("https://freeimage.host/api/1/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
-        body,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
       });
       const data = await res.json();
-      return data.image?.url ?? null;
+      return data.url ?? null;
     } catch {
       return null;
     }
