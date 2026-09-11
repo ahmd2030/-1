@@ -1,3 +1,5 @@
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 60;
@@ -24,117 +26,61 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
-  // Convert AI SDK message format to Google Generative AI format
-  const googleContents = messages
-    .filter((m: any) => m.role === 'user' || m.role === 'assistant')
-    .map((m: any) => {
-      const parts: any[] = [];
-      if (typeof m.content === 'string') {
-        parts.push({ text: m.content });
-      } else if (Array.isArray(m.content)) {
-        for (const part of m.content) {
-          if (part.type === 'text') parts.push({ text: part.text });
-          if (part.type === 'image_url') {
-            parts.push({
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: part.image_url.url, // URL as-is (Google accepts URLs too)
-              },
-            });
-          }
-        }
-      }
-      return {
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: parts.length > 0 ? parts : [{ text: '' }],
-      };
-    });
+  const google = createOpenAI({
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    apiKey,
+  });
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: SYSTEM }],
-          },
-          contents: googleContents,
-          generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 2048,
+    const result = await streamText({
+      model: google('gemini-flash-latest'),
+      system: SYSTEM,
+      messages,
+      tools: {
+        webSearch: tool({
+          description: 'Search the web for the latest fashion trends, seasonal colors, or fashion-related information.',
+          parameters: z.object({
+            query: z.string().describe('Search query in English or Arabic'),
+          }),
+          execute: async ({ query }) => {
+            const tavilyKey = process.env.TAVILY_API_KEY;
+            if (!tavilyKey) return { error: 'Web search not configured.' };
+            try {
+              const res = await fetch('https://api.tavily.com/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ api_key: tavilyKey, query, max_results: 5 }),
+              });
+              const data = await res.json();
+              return {
+                results: data.results?.map((r: any) => ({
+                  title: r.title,
+                  content: r.content?.slice(0, 400),
+                  url: r.url,
+                })) ?? [],
+              };
+            } catch {
+              return { error: 'Search failed.' };
+            }
           },
         }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      try {
-        // If it fails, let's fetch the actual available models so we can see them!
-        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const modelsData = await modelsRes.json();
-        const flashModels = modelsData.models
-          .map((m: any) => m.name.replace('models/', ''))
-          .filter((n: string) => n.includes('flash'))
-          .join(', ');
-        console.error('Available flash models:', flashModels);
-        return Response.json({ error: `خطأ في اسم النموذج. النماذج المتاحة لديك هي: ${flashModels}` }, { status: 500 });
-      } catch (e) {
-        return Response.json({ error: `Google API Error: ${response.status} - ${errorText.slice(0, 200)}` }, { status: 500 });
-      }
-    }
-
-    // Stream response back in AI SDK v3 data stream format
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr === '[DONE]') continue;
-
-              try {
-                const data = JSON.parse(jsonStr);
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                  // AI SDK v3 streaming format: 0:"text"\n
-                  controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
-                }
-              } catch {
-                // Skip malformed JSON lines
-              }
-            }
-          }
-        } finally {
-          // Send finish event
-          controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
-          controller.close();
-        }
+        generateFashionImages: tool({
+          description: 'Trigger professional AI image generation after agreeing with the user on all details.',
+          parameters: z.object({
+            imageUrls: z.array(z.string()),
+            brandName: z.string().optional(),
+            promoText: z.string().optional(),
+            modelType: z.enum(['boy', 'girl', 'man', 'woman']),
+            stylePrompt: z.string().optional(),
+          }),
+          execute: async (args) => {
+            return { status: 'ready', details: args };
+          },
+        }),
       },
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-        'Cache-Control': 'no-cache',
-      },
-    });
+    return result.toDataStreamResponse();
   } catch (err: any) {
     const msg = err?.message || 'Unknown error';
     console.error('Chat API error:', msg);
