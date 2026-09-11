@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-3.0-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,8 +71,19 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Google API error:', errorText);
-      return Response.json({ error: `Google API: ${response.status} ${errorText.slice(0, 200)}` }, { status: 500 });
+      try {
+        // If it fails, let's fetch the actual available models so we can see them!
+        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const modelsData = await modelsRes.json();
+        const flashModels = modelsData.models
+          .map((m: any) => m.name.replace('models/', ''))
+          .filter((n: string) => n.includes('flash'))
+          .join(', ');
+        console.error('Available flash models:', flashModels);
+        return Response.json({ error: `خطأ في اسم النموذج. النماذج المتاحة لديك هي: ${flashModels}` }, { status: 500 });
+      } catch (e) {
+        return Response.json({ error: `Google API Error: ${response.status} - ${errorText.slice(0, 200)}` }, { status: 500 });
+      }
     }
 
     // Stream response back in AI SDK v3 data stream format
