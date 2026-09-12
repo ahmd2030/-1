@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await streamText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-flash-latest'),
       system: SYSTEM,
       messages: coreMessages,
       tools: {
