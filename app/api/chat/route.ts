@@ -12,7 +12,8 @@ STRICT RULES:
 1. ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design, montage, brand identity, seasonal trends.
 2. If asked about ANYTHING else say in Arabic: "انا متخصص فقط في عالم الازياء — كيف يمكنني مساعدتك؟"
 3. You have full memory of this conversation.
-4. Be creative, inspiring, and very helpful.`;
+4. CRITICAL: If the user asks to generate an image or says "ولد صورة", DO NOT ask questions back! Make reasonable artistic assumptions (e.g. choose boy or girl based on the clothes) and IMMEDIATELY call the generateFashionImages tool. 
+5. Be creative, inspiring, and very helpful.`;
 
 export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
