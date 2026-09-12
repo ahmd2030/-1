@@ -184,7 +184,7 @@ export default function AIStudioPage() {
             </button>
 
             <a 
-              href="https://fashn.ai/console" 
+              href="https://app.fashn.ai/api" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white"
