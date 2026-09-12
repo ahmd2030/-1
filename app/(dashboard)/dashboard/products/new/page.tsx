@@ -13,7 +13,9 @@ export default function AIStudioPage() {
 
   const [modelType, setModelType] = useState<string>("girl");
   const [category, setCategory] = useState<string>("tops");
-  const [stylePrompt, setStylePrompt] = useState<string>("صورة كاملة (من الرأس للقدمين)، استوديو بألوان دافئة، أرضية خشبية، وديكورات خفيفة وأنيقة في الخلفية");
+  
+  // Default to a highly-optimized crisp lighting prompt
+  const [stylePrompt, setStylePrompt] = useState<string>("إضاءة نهارية محايدة (Neutral Daylight)، خلفية استوديو بيضاء أو رمادية فاتحة جداً لإبراز تفاصيل القطعة وألوانها الأصلية بدون أي انعكاسات لونية");
   
   // Catalogue Mode States
   const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
@@ -78,14 +80,11 @@ export default function AIStudioPage() {
         canvas.width = img.width;
         canvas.height = img.height;
         
-        // Draw original image
         ctx.drawImage(img, 0, 0);
         
-        // Setup text styles
         const padding = img.width * 0.05;
         
-        // 1. Draw Brand Name (Top Leftish - Cursive/Elegant)
-        ctx.fillStyle = "#ff6b81"; // elegant pink for Baby Rose
+        ctx.fillStyle = "#ff6b81"; 
         ctx.font = `italic bold ${img.width * 0.08}px Georgia, serif`;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
@@ -93,19 +92,16 @@ export default function AIStudioPage() {
         ctx.shadowBlur = 10;
         ctx.fillText(brandName, padding, padding);
         
-        // 2. Draw Product Code (Top Right - Modern Bold)
-        ctx.fillStyle = "#1e293b"; // dark slate
+        ctx.fillStyle = "#1e293b"; 
         ctx.font = `bold ${img.width * 0.05}px Arial, sans-serif`;
         ctx.textAlign = "right";
-        ctx.shadowBlur = 0; // reset shadow
+        ctx.shadowBlur = 0; 
         ctx.fillText(productCode, img.width - padding, padding);
         
-        // 3. Draw Sizes (Under Product Code)
-        ctx.fillStyle = "#475569"; // slate gray
+        ctx.fillStyle = "#475569"; 
         ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
         ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
         
-        // Return composed image
         resolve(canvas.toDataURL('image/jpeg', 0.95));
       };
       img.onerror = () => resolve(imageUrl);
@@ -143,7 +139,6 @@ export default function AIStudioPage() {
         toast.error("حدث خطأ أثناء التوليد");
       } else if (data.imageUrl) {
         
-        // Apply Catalogue Overlay locally!
         toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
         const finalImageUrl = await applyCatalogueOverlay(data.imageUrl);
         
@@ -344,18 +339,18 @@ export default function AIStudioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل الكتالوج الاحترافي</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل الخلفية والإضاءة (لإبراز القطعة)</label>
                   <textarea
                     value={stylePrompt}
                     onChange={(e) => setStylePrompt(e.target.value)}
                     dir="rtl"
-                    className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm"
+                    className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm leading-relaxed"
                   />
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
-                      "صورة كاملة (من الرأس للقدمين)، استوديو بألوان دافئة، ديكورات خفيفة وأنيقة في الخلفية 🧍‍♀️",
-                      "استوديو بألوان بيج دافئة، أرضية خشبية، شجرة زيتون في الخلفية، إضاءة شمس ناعمة 🌿",
-                      "خلفية استوديو بيضاء نقية للتجارة الإلكترونية، إضاءة Softbox ناعمة ومتساوية 📸"
+                      "إضاءة نهارية محايدة (Neutral Daylight)، خلفية استوديو بيضاء أو رمادية فاتحة جداً لإبراز تفاصيل القطعة بدون أي انعكاسات لونية 💡",
+                      "استوديو حديث بألوان فاتحة جداً (Off-white)، أرضية خشبية رمادية، إضاءة Softbox نقية تظهر لون القماش الحقيقي بدقة 📸",
+                      "خلفية استوديو بيضاء نقية 100% للتجارة الإلكترونية، إضاءة قوية ومتساوية تمنع اختلاط الألوان 🛒"
                     ].map(preset => (
                       <button
                         key={preset}

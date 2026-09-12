@@ -19,7 +19,8 @@ export class FashnProvider implements AIProvider {
       if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
       if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
 
-      const promptText = `Full body shot, head to toe, showing legs and shoes. A highly detailed, professional full-length fashion photography shot of a ${options.modelType || 'person'} wearing the ${categoryText}. ${options.style || 'High fashion, studio lighting, 8k resolution.'}. The background has light elegant interior decorations, plants, and minimal furniture, photorealistic, best quality, ultra detailed.`;
+      // Enhanced prompt to strictly prevent color bleeding and emphasize product details
+      const promptText = `Full body shot, head to toe, showing legs and shoes. A highly detailed, professional full-length fashion photography shot of a ${options.modelType || 'person'} wearing the ${categoryText}. ${options.style || ''}. Pure crisp neutral daylight lighting, high contrast, accurate garment colors without background color bleeding. The background should be a clean, neutral luxury studio environment that makes the garment details pop, photorealistic, best quality, ultra detailed 8k.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
