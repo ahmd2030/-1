@@ -1,12 +1,5 @@
 ﻿import { AIProvider, AIGenerationOptions, AIGenerationResult } from './provider';
 
-const DEFAULT_MODELS: Record<string, string> = {
-  man: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80',
-  woman: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80',
-  boy: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80',
-  girl: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=800&q=80',
-};
-
 export class FashnProvider implements AIProvider {
   name = 'fashn';
 
@@ -16,35 +9,29 @@ export class FashnProvider implements AIProvider {
       throw new Error('FASHN_API_KEY is not configured');
     }
 
-    let fashnCategory = 'tops';
-    if (options.category) {
-       if (options.category.toLowerCase().includes('pant') || options.category.toLowerCase().includes('skirt') || options.category.toLowerCase().includes('bottom')) {
-         fashnCategory = 'bottoms';
-       } else if (options.category.toLowerCase().includes('dress') || options.category.toLowerCase().includes('jumpsuit') || options.category.toLowerCase().includes('one-piece')) {
-         fashnCategory = 'one-pieces';
-       }
-    }
-
     try {
       console.log('Calling FASHN API...');
       
       const modelName = options.modelImage ? 'tryon-max' : 'product-to-model';
       
-      const promptText = `A highly detailed, professional fashion photography shot of a ${options.modelType || 'person'} wearing the garment. ${options.style || 'High fashion, studio lighting, 8k resolution, photorealistic.'}`;
-      const negativePrompt = 'ugly, deformed, bad anatomy, mannequins, text, watermark, bad lighting, low quality, cartoon, illustration';
+      let categoryText = "garment";
+      if (options.category === "tops") categoryText = "top/shirt/jacket";
+      if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
+      if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
+
+      const promptText = `A highly detailed, professional fashion photography shot of a ${options.modelType || 'person'} wearing the ${categoryText}. ${options.style || 'High fashion, studio lighting, 8k resolution, photorealistic.'}, photorealistic, best quality, ultra detailed`;
 
       const inputs: any = {
         product_image: options.garmentImage,
-        category: fashnCategory,
-        prompt: promptText,
-        negative_prompt: negativePrompt,
-        num_samples: 1
       };
 
+      // FASHN's tryon-max model accepts these, but product-to-model only accepts product_image and prompt!
       if (options.modelImage) {
         inputs.model_image = options.modelImage;
+        inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
-        inputs.garment_direction = 'front';
+        // For product-to-model, we only send product_image and prompt. No category, no negative_prompt, no num_samples.
+        inputs.prompt = promptText;
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {
