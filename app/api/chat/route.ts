@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -69,14 +69,9 @@ export async function POST(req: Request) {
     }
   });
 
-  const google = createOpenAI({
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    apiKey,
-  });
-
   try {
     const result = await streamText({
-      model: google('gemini-flash-latest'),
+      model: google('gemini-1.5-flash-latest'),
       system: SYSTEM,
       messages: coreMessages,
       tools: {
