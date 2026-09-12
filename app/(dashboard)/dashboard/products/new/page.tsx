@@ -1,35 +1,69 @@
-"use client";
-
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Globe, Cpu, Loader2, Send, Plus, X, Upload } from "lucide-react";
 import { useChat } from "ai/react";
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, ImagePlus, Loader2, Sparkles, Globe, Cpu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
-export default function ChatDirectorPage() {
-  const { messages, append, isLoading, error } = useChat({
+const AsyncImageGenerator = ({ result }: { result: any }) => {
+  const [data, setData] = useState<{imageUrl?: string, error?: string, brandName?: string}>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (result.imageUrl || result.error) {
+       setData(result);
+       setLoading(false);
+       return;
+    }
+    
+    if (result.status === 'ready_to_generate') {
+      fetch('/api/generate/base64', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      })
+      .then(r => r.json())
+      .then(d => {
+         setData(d);
+         setLoading(false);
+      })
+      .catch(e => {
+         setData({ error: e.message });
+         setLoading(false);
+      });
+    }
+  }, [result]);
+
+  if (loading) return <p className="text-xs text-green-600 mt-1">✓ تم استلام طلب التوليد — جاري المعالجة (قد يستغرق 20-30 ثانية)...</p>;
+  if (data.error) return <p className="text-xs text-red-600">❌ خطأ: {data.error}</p>;
+  return (
+    <div className="flex flex-col gap-2 mt-2">
+      <p className="text-xs text-green-600 font-medium">✨ تم توليد الصورة بنجاح!</p>
+      {data.imageUrl && <img src={data.imageUrl} className="rounded-lg border shadow-sm max-w-full h-auto max-h-80 object-cover" />}
+      {data.brandName && <p className="text-xs text-slate-500 text-center italic mt-1">{data.brandName}</p>}
+    </div>
+  );
+};
+
+export default function AIDirectorPage() {
+  const { messages, input, handleInputChange, append, setInput, isLoading, error } = useChat({
     api: "/api/chat",
-    onError: (err) => {
-      console.error("Chat error:", err);
-      toast.error(`خطأ في المحادثة: ${err.message || "تأكد من إعداد OPENAI_API_KEY في Vercel"}`);
-    },
+    maxSteps: 5,
   });
-  const [input, setInput] = useState("");
+
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string); // Returns 'data:image/...;base64,...'
+      reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
@@ -57,7 +91,6 @@ export default function ChatDirectorPage() {
     const text = input.trim();
     if (!text && uploadedUrls.length === 0) return;
 
-    // Build message content with vision support
     const contentParts: any[] = [];
     if (text) contentParts.push({ type: "text", text });
     uploadedUrls.forEach((url) =>
@@ -92,13 +125,15 @@ export default function ChatDirectorPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] max-w-4xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-        <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-        </div>
-        <div>
-          <h2 className="font-bold text-sm">المخرج الذكي · AI Director</h2>
-          <p className="text-xs text-slate-400">متخصص في الأزياء والموضة · يبحث على الإنترنت · يتذكر المحادثة</p>
+      <div className="bg-slate-900 text-white px-6 py-4 flex flex-row-reverse justify-between items-center z-10">
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <h2 className="font-bold text-lg">المخرج الذكي • AI Director</h2>
+            <p className="text-xs text-slate-400">متخصص في الأزياء والموضة • يبحث على الإنترنت • يتذكر المحادثة</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+            <span className="text-xl">✨</span>
+          </div>
         </div>
         <div className="mr-auto flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -107,20 +142,17 @@ export default function ChatDirectorPage() {
       </div>
       {/* Error Banner */}
       {error && (
-        <div className="px-5 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center gap-2" dir="rtl">
-          <span>⚠️</span>
-          <span>{error.message.includes("API key") || error.message.includes("401") 
-            ? "مفتاح OpenAI غير صحيح أو غير موجود. تأكد من إضافة OPENAI_API_KEY في إعدادات Vercel."
-            : `خطأ: ${error.message}`}</span>
+        <div className="bg-red-50 text-red-600 px-4 py-2 text-xs text-center border-b border-red-100 font-medium">
+          خطأ: {error.message}
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50" dir="rtl">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 scroll-smooth">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center mb-5 shadow-xl">
-              <Sparkles className="w-9 h-9 text-amber-400" />
+          <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-6 shadow-xl">
+              <span className="text-3xl">✨</span>
             </div>
             <h3 className="text-2xl font-bold mb-2 text-slate-800">أهلاً، أنا المخرج الذكي</h3>
             <p className="text-slate-500 max-w-sm text-sm leading-relaxed">
@@ -182,25 +214,7 @@ export default function ChatDirectorPage() {
                         </ul>
                       )}
                       {t.state === "result" && t.toolName === "generateFashionImages" && (
-                        <div className="mt-2">
-                          {t.result?.error ? (
-                            <p className="text-xs text-red-600">❌ خطأ: {t.result.error}</p>
-                          ) : t.result?.imageUrl ? (
-                            <div className="flex flex-col gap-2">
-                              <p className="text-xs text-green-600 font-medium">✨ تم توليد الصورة بنجاح!</p>
-                              <img 
-                                src={t.result.imageUrl} 
-                                alt="Generated Fashion" 
-                                className="rounded-lg border shadow-sm max-w-full h-auto max-h-80 object-cover" 
-                              />
-                              {t.result.brandName && (
-                                <p className="text-xs text-slate-500 text-center italic mt-1">{t.result.brandName}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-green-600 mt-1">✓ تم استلام طلب التوليد — جاري المعالجة...</p>
-                          )}
-                        </div>
+                        <AsyncImageGenerator result={t.result} />
                       )}
                     </div>
                   </div>
@@ -209,81 +223,82 @@ export default function ChatDirectorPage() {
             </div>
           </div>
         ))}
-
-        {isLoading && messages[messages.length - 1]?.role === "user" && (
+        {isLoading && (
           <div className="flex justify-end">
-            <div className="bg-white border shadow-sm rounded-2xl rounded-tr-sm px-4 py-3 flex gap-2 items-center text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">المخرج يفكر...</span>
+            <div className="bg-white border shadow-sm rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:0.1s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:0.2s]" />
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-4 bg-white border-t" dir="rtl">
+      {/* Input Area */}
+      <div className="p-4 bg-white border-t z-10">
+        {/* Attachments Preview */}
         {attachments.length > 0 && (
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
             {attachments.map((file, i) => (
-              <div key={i} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border">
-                <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                {uploadedUrls.length <= i && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 text-white animate-spin" />
-                  </div>
-                )}
+              <div key={i} className="relative group shrink-0">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  className="w-16 h-16 object-cover rounded-xl border shadow-sm"
+                />
                 <button
                   onClick={() => removeAttachment(i)}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black"
+                  className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="w-3 h-3" />
                 </button>
+                {uploading && i >= uploadedUrls.length && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-xl">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-800" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex gap-2 items-end">
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="shrink-0 h-11 w-11 rounded-xl"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4 text-slate-600" />}
-          </Button>
-
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="تحدث مع المخرج... أو ارفع صوراً ليحللها"
-            rows={1}
-            className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 max-h-32"
-          />
-
-          <Button
+        <div className="flex gap-2">
+          <button
+            disabled={isLoading || uploading}
             onClick={handleSend}
-            disabled={isLoading || uploading || (!input.trim() && uploadedUrls.length === 0)}
-            className="shrink-0 h-11 w-11 rounded-xl bg-slate-900 hover:bg-slate-700"
-            size="icon"
+            className="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition-colors shrink-0"
           >
-            <Send className="w-4 h-4" />
-          </Button>
+            <Send className="w-5 h-5 rtl:-scale-x-100" />
+          </button>
+          
+          <div className="flex-1 relative flex items-center">
+            <textarea
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="تحدث مع المخرج... أو ارفع صوراً ليحللها"
+              className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all resize-none text-right placeholder:text-right"
+              dir="rtl"
+            />
+            <input
+              type="file"
+              id="file-upload"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <label
+              htmlFor="file-upload"
+              className="absolute left-3 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+            >
+              <Upload className="w-5 h-5" />
+            </label>
+          </div>
         </div>
-        <p className="text-center text-xs text-slate-400 mt-2">Enter للإرسال · Shift+Enter للسطر الجديد</p>
+        <p className="text-center text-[10px] text-slate-400 mt-3 font-medium">
+          Enter للإرسال • Shift+Enter لسطر جديد
+        </p>
       </div>
     </div>
   );

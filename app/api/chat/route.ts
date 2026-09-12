@@ -117,9 +117,6 @@ export async function POST(req: Request) {
             stylePrompt: z.string().optional(),
           }),
           execute: async (args) => {
-            const { FashnProvider } = await import('@/lib/ai/fashn');
-            const provider = new FashnProvider();
-            
             // Get image from the accumulated history
             const targetIndex = args.imageIndex !== undefined ? args.imageIndex : allUserImages.length - 1;
             const garmentImage = allUserImages[targetIndex];
@@ -128,24 +125,16 @@ export async function POST(req: Request) {
               return { error: 'لا يوجد صورة منتج. يرجى رفع صورة المنتج أولاً.' };
             }
 
-            try {
-              const result = await provider.generate({
-                garmentImage, // Pass base64 directly to FASHN
-                category: 'tops',
-                modelType: args.modelType,
-                style: args.stylePrompt,
-              });
-
-              return {
-                status: 'success',
-                imageUrl: result.imageUrl, // FASHN returns a URL
-                brandName: args.brandName,
-                promoText: args.promoText,
-                message: 'تم توليد الصورة بنجاح!'
-              };
-            } catch (error: any) {
-              return { status: 'error', error: error.message };
-            }
+            // Return immediately to the client to avoid Vercel timeouts and UI freezing.
+            // The client will see this result and trigger the actual background generation.
+            return {
+              status: 'ready_to_generate',
+              garmentImage,
+              modelType: args.modelType,
+              style: args.stylePrompt,
+              brandName: args.brandName,
+              promoText: args.promoText,
+            };
           },
         }),
       },
