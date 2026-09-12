@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Globe, Cpu, Loader2, Send, Plus, X, Upload } from "lucide-react";
 import { useChat } from "ai/react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const AsyncImageGenerator = ({ result }: { result: any }) => {
   const [data, setData] = useState<{imageUrl?: string, error?: string, brandName?: string}>({});
