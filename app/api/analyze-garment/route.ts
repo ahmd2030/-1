@@ -8,20 +8,29 @@ export async function POST(req: Request) {
     
     if (!process.env.OPENAI_API_KEY) {
       console.log("No OpenAI key, using fallback");
-      return NextResponse.json({ suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling." });
+      return NextResponse.json({ 
+        suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
+        size: "",
+        sku: ""
+      });
     }
 
     console.log("Analyzing garment with GPT-4o-mini...");
 
-    const systemPrompt = `You are a world-class fashion art director and lead photographer for luxury children's brands and high-end fashion magazines (like Vogue or Zara Kids).
-Analyze the provided clothing item (fabric, style, season, vibe). 
-Write a master-level, highly descriptive background and photography prompt for a photorealistic AI image generator.
+    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a text-extraction engine.
+Analyze the provided clothing image.
 
 Instructions:
-1. IMMERSIVE ENVIRONMENT (CRITICAL): The user finds plain studios and empty walls "boring". DO NOT use plain walls, empty rooms, or simple studio backgrounds. Design a visually striking, rich, immersive, and exciting real-world location (e.g., 'a bustling Parisian street with outdoor cafes', 'a luxurious children's playroom filled with vintage wooden toys and a grand fireplace', 'an enchanted magical forest with glowing fireflies', 'a sun-drenched luxury yacht deck'). The background must be complex and breathtaking, but use 'beautiful bokeh / shallow depth of field' so it doesn't distract from the clothing.
-2. Lighting & Camera: Include professional photography terms (e.g., 'soft volumetric lighting, beautiful golden hour sunlight, shot on 35mm lens, cinematic composition, 8k resolution, award-winning photorealistic photography, hyper-detailed').
-3. Pose & Vibe: Describe the model's pose as highly natural and candid (e.g., 'Natural, relaxed, candid dynamic lifestyle pose, happy authentic expression, walking or playing naturally, no stiff poses').
-4. Format: A continuous comma-separated paragraph. NO introductory text, NO markdown, NO quotes. Just the raw English prompt.`;
+1. "prompt": Create a breathtaking, rich, immersive, real-world high-end editorial photography prompt for this garment (e.g., Parisian street, magical forest, luxury playroom). NO plain walls. Include professional lighting terms and a natural candid pose.
+2. "extracted_size": Look closely at the image. Is there any text indicating the size or age range? (e.g., 'S.M.L', '2-5', '3-6 months'). If yes, extract it exactly. If no, leave as an empty string "".
+3. "extracted_sku": Look closely at the image. Is there any text indicating a product code, model number, or SKU? (e.g., '566-13B', 'BR-2024'). If yes, extract it exactly. If no, leave as an empty string "".
+
+FORMAT REQUIRED: You MUST respond ONLY with a raw JSON object. Do not include markdown formatting like \`\`\`json. Just the raw JSON.
+{
+  "prompt": "...",
+  "extracted_size": "...",
+  "extracted_sku": "..."
+}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -39,13 +48,13 @@ Instructions:
           {
             role: "user",
             content: [
-              { type: "text", text: "Create a breathtaking, immersive, real-world high-end editorial photography prompt for this garment. NO plain walls." },
+              { type: "text", text: "Analyze the image and return the JSON object." },
               { type: "image_url", image_url: { url: garmentImage } }
             ]
           }
         ],
-        max_tokens: 200,
-        temperature: 0.8
+        max_tokens: 300,
+        temperature: 0.2
       })
     });
 
@@ -56,15 +65,33 @@ Instructions:
       throw new Error(data.error.message);
     }
     
-    const suggestion = data.choices?.[0]?.message?.content?.trim();
+    let resultText = data.choices?.[0]?.message?.content?.trim();
+    if (!resultText) throw new Error("No suggestion returned from OpenAI");
 
-    if (!suggestion) {
-      throw new Error("No suggestion returned from OpenAI");
+    // Clean up potential markdown formatting if the model disobeys
+    if (resultText.startsWith("```json")) {
+      resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
+    } else if (resultText.startsWith("```")) {
+      resultText = resultText.replace(/```/g, "").trim();
     }
 
-    return NextResponse.json({ suggestion });
+    try {
+      const parsed = JSON.parse(resultText);
+      return NextResponse.json({ 
+        suggestion: parsed.prompt || "", 
+        size: parsed.extracted_size || "", 
+        sku: parsed.extracted_sku || "" 
+      });
+    } catch (e) {
+      console.error("Failed to parse JSON from OpenAI:", resultText);
+      return NextResponse.json({ suggestion: resultText, size: "", sku: "" });
+    }
   } catch (error) {
     console.error('Analysis error:', error);
-    return NextResponse.json({ suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling." });
+    return NextResponse.json({ 
+      suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
+      size: "",
+      sku: ""
+    });
   }
 }

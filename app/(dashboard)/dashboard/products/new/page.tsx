@@ -22,8 +22,8 @@ export default function AIStudioPage() {
   const [brandName, setBrandName] = useState<string>("Baby Rose");
   const [base64Logo, setBase64Logo] = useState<string | null>(null);
   
-  const [productCode, setProductCode] = useState<string>("BR-2024");
-  const [sizes, setSizes] = useState<string>("S.M.L | 2-5 Years");
+  const [productCode, setProductCode] = useState<string>("");
+  const [sizes, setSizes] = useState<string>("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function AIStudioPage() {
   
   const analyzeGarment = async (b64: string) => {
     setIsAnalyzing(true);
-    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لابتكار خلفية حية ومبهرة تناسبها...");
+    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاستخراج البيانات وابتكار خلفية...");
     try {
       const res = await fetch('/api/analyze-garment', {
         method: 'POST',
@@ -80,7 +80,9 @@ export default function AIStudioPage() {
       const data = await res.json();
       if (data.suggestion) {
         setStylePrompt(data.suggestion);
-        toast.success("تم ابتكار خلفية حية ومبهرة للقطعة!");
+        if (data.size && data.size.length > 0) setSizes(data.size);
+        if (data.sku && data.sku.length > 0) setProductCode(data.sku);
+        toast.success("تم ابتكار الخلفية واستخراج البيانات من الصورة بنجاح!");
       }
     } catch(e) {
       setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
@@ -121,16 +123,39 @@ export default function AIStudioPage() {
         
         const padding = img.width * 0.05;
         
-        // Draw Logo or Brand Name
+        const finishDrawingText = () => {
+          ctx.fillStyle = "#1e293b"; 
+          ctx.font = `bold ${img.width * 0.05}px Arial, sans-serif`;
+          ctx.textAlign = "right";
+          ctx.textBaseline = "top";
+          ctx.shadowBlur = 0; 
+          if (productCode) ctx.fillText(productCode, img.width - padding, padding);
+          
+          ctx.fillStyle = "#475569"; 
+          ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
+          if (sizes) ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
+          
+          resolve(canvas.toDataURL('image/jpeg', 0.95));
+        };
+        
         if (base64Logo) {
           const logoImg = new Image();
+          logoImg.crossOrigin = "anonymous";
           logoImg.onload = () => {
-            const logoWidth = img.width * 0.25; 
+            const logoWidth = img.width * 0.20; 
             const aspect = logoImg.height / logoImg.width;
             const logoHeight = logoWidth * aspect;
+            
+            ctx.shadowColor = "rgba(255,255,255,0.7)";
+            ctx.shadowBlur = 15;
             ctx.drawImage(logoImg, padding, padding, logoWidth, logoHeight);
-            drawTextElements(ctx, img.width, padding);
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
+            ctx.shadowBlur = 0;
+            
+            finishDrawingText();
+          };
+          logoImg.onerror = () => {
+            console.error("Failed to load logo image onto canvas");
+            finishDrawingText();
           };
           logoImg.src = base64Logo;
         } else {
@@ -140,29 +165,15 @@ export default function AIStudioPage() {
           ctx.textBaseline = "top";
           ctx.shadowColor = "rgba(255,255,255,0.8)";
           ctx.shadowBlur = 10;
-          ctx.fillText(brandName, padding, padding);
+          if (brandName) ctx.fillText(brandName, padding, padding);
           
-          drawTextElements(ctx, img.width, padding);
-          resolve(canvas.toDataURL('image/jpeg', 0.95));
+          finishDrawingText();
         }
       };
       
       img.onerror = () => resolve(imageUrl);
       img.src = imageUrl;
     });
-  };
-
-  const drawTextElements = (ctx: CanvasRenderingContext2D, imgWidth: number, padding: number) => {
-    ctx.fillStyle = "#1e293b"; 
-    ctx.font = `bold ${imgWidth * 0.05}px Arial, sans-serif`;
-    ctx.textAlign = "right";
-    ctx.textBaseline = "top";
-    ctx.shadowBlur = 0; 
-    ctx.fillText(productCode, imgWidth - padding, padding);
-    
-    ctx.fillStyle = "#475569"; 
-    ctx.font = `bold ${imgWidth * 0.035}px Arial, sans-serif`;
-    ctx.fillText(sizes, imgWidth - padding, padding + (imgWidth * 0.06));
   };
 
   const handleGenerate = async () => {
@@ -224,7 +235,7 @@ export default function AIStudioPage() {
     const htmlContent = `
       <html>
         <head>
-          <title>كتالوج Baby Rose - ${new Date().toLocaleDateString()}</title>
+          <title>كتالوج المبيعات - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: sans-serif; margin: 0; padding: 20px; background: white; }
             .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -354,12 +365,12 @@ export default function AIStudioPage() {
               
               {catalogueMode && (
                 <div className="space-y-4 text-right relative z-10 animate-in fade-in slide-in-from-top-4">
-                  <p className="text-sm text-indigo-700/80 mb-4">أضف شعارك الرسمي وتفاصيل المنتج ليتم ختمها على الصور تلقائياً كعلامة مائية.</p>
+                  <p className="text-sm text-indigo-700/80 mb-4">أضف شعارك الرسمي. سيقوم النظام باستخراج المقاس ورقم المنتج تلقائياً من الصورة (إن وجد).</p>
                   
                   <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-row-reverse items-center justify-between">
                     <div className="text-right">
                       <label className="block text-sm font-bold text-slate-800 mb-1">الشعار الرسمي (Logo)</label>
-                      <p className="text-xs text-slate-500">ارفع ملف PNG شفاف ليتم وضعه كعلامة مائية</p>
+                      <p className="text-xs text-slate-500">ارفع ملف PNG ليتم وضعه كعلامة مائية</p>
                     </div>
                     {base64Logo ? (
                       <div className="flex items-center gap-3">
@@ -376,20 +387,49 @@ export default function AIStudioPage() {
 
                   {!base64Logo && (
                     <div className="mt-2">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">أو اسم الماركة (يظهر بخط أنيق)</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">اسم الماركة (يظهر بخط أنيق)</label>
                       <input type="text" value={brandName} onChange={e=>setBrandName(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">العمر / المقاسات</label>
-                      <input type="text" value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">المقاسات (مستخرج آلياً)</label>
+                      <input type="text" value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" placeholder="S.M.L | 2-5 Years" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">رمز المنتج (SKU)</label>
-                      <input type="text" value={productCode} onChange={e=>setProductCode(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">رمز المنتج (مستخرج آلياً)</label>
+                      <input type="text" value={productCode} onChange={e=>setProductCode(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" placeholder="BR-2024" />
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border shadow-sm">
+              <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
+                <span>(اختياري) وضع العارض المطابق للكتالوج</span>
+                <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm"><UserSquare2 className="w-4 h-4" /></span>
+              </h3>
+              
+              {!base64ModelImage ? (
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleModelFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <UserSquare2 className="w-8 h-8 text-slate-400 mb-2" />
+                  <p className="font-medium text-slate-600">ارفع صورة العارض (من الكتالوج المرجعي الخاص بك)</p>
+                </div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border group">
+                  <img src={base64ModelImage} alt="Model Reference" className="w-full h-64 object-contain bg-slate-50" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                    <button onClick={() => setBase64ModelImage(null)} className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600">
+                      إزالة الصورة
+                    </button>
                   </div>
                 </div>
               )}
