@@ -13,7 +13,7 @@ export default function AIStudioPage() {
 
   const [modelType, setModelType] = useState<string>("girl");
   const [category, setCategory] = useState<string>("tops");
-  const [stylePrompt, setStylePrompt] = useState<string>("صورة كتالوج احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
+  const [stylePrompt, setStylePrompt] = useState<string>("صورة كاملة (من الرأس للقدمين)، استوديو بألوان دافئة، أرضية خشبية، وديكورات خفيفة وأنيقة في الخلفية");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,7 +195,7 @@ export default function AIStudioPage() {
             <div className={`bg-white p-6 rounded-2xl border shadow-sm transition-opacity ${base64ModelImage ? 'opacity-50 pointer-events-none' : ''}`}>
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
                 <span>إعدادات التوليد التلقائي (في حال لم يتم رفع عارض)</span>
-                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">2</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">3</span>
               </h3>
               
               <div className="space-y-6 text-right">
@@ -256,6 +256,21 @@ export default function AIStudioPage() {
                     className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm"
                     placeholder="اكتب وصف الخلفية والإضاءة هنا..."
                   />
+                  <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
+                    {[
+                      "صورة كاملة (من الرأس للقدمين)، استوديو بألوان دافئة، ديكورات خفيفة وأنيقة في الخلفية 🧍‍♀️",
+                      "استوديو بألوان بيج دافئة، أرضية خشبية، شجرة زيتون في الخلفية، إضاءة شمس ناعمة 🌿",
+                      "خلفية استوديو بيضاء نقية للتجارة الإلكترونية، إضاءة Softbox ناعمة ومتساوية 📸"
+                    ].map(preset => (
+                      <button
+                        key={preset}
+                        onClick={() => setStylePrompt(preset)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border text-right max-w-full leading-relaxed"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -19,18 +19,16 @@ export class FashnProvider implements AIProvider {
       if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
       if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
 
-      const promptText = `A highly detailed, professional fashion photography shot of a ${options.modelType || 'person'} wearing the ${categoryText}. ${options.style || 'High fashion, studio lighting, 8k resolution, photorealistic.'}, photorealistic, best quality, ultra detailed`;
+      const promptText = `Full body shot, head to toe, showing legs and shoes. A highly detailed, professional full-length fashion photography shot of a ${options.modelType || 'person'} wearing the ${categoryText}. ${options.style || 'High fashion, studio lighting, 8k resolution.'}. The background has light elegant interior decorations, plants, and minimal furniture, photorealistic, best quality, ultra detailed.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
       };
 
-      // FASHN's tryon-max model accepts these, but product-to-model only accepts product_image and prompt!
       if (options.modelImage) {
         inputs.model_image = options.modelImage;
         inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
-        // For product-to-model, we only send product_image and prompt. No category, no negative_prompt, no num_samples.
         inputs.prompt = promptText;
       }
 
