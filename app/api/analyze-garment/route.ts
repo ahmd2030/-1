@@ -13,6 +13,16 @@ export async function POST(req: Request) {
 
     console.log("Analyzing garment with GPT-4o-mini...");
 
+    const systemPrompt = `You are a world-class fashion art director and lead photographer for luxury children's brands and high-end fashion magazines (like Vogue or Zara Kids).
+Analyze the provided clothing item (fabric, style, season, vibe). 
+Write a master-level, highly descriptive background and photography prompt for a photorealistic AI image generator.
+
+Instructions:
+1. Environment: Design a visually striking, high-end, breathtaking aesthetic environment that perfectly complements the garment. Use rich, evocative details (e.g., 'minimalist wabi-sabi interior with raw concrete and warm sunlight', or 'sun-drenched luxurious Tuscan villa garden with olive trees and soft shadows'). Avoid generic backgrounds.
+2. Lighting & Camera: Include professional photography terms to ensure maximum visual quality (e.g., 'soft volumetric lighting, beautiful golden hour sunlight filtering through window, shot on 35mm lens, delicate soft shadows, cinematic composition, 8k resolution, award-winning photorealistic photography, hyper-detailed').
+3. Pose & Vibe: Describe the model's pose as highly natural and candid (e.g., 'Natural, relaxed, candid dynamic lifestyle pose, happy authentic expression, walking or playing naturally, no stiff poses').
+4. Format: A continuous comma-separated paragraph. NO introductory text, NO markdown, NO quotes. Just the raw English prompt.`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -24,17 +34,18 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content: "You are an expert fashion art director. Analyze the provided clothing item. Based on its style, fabric, season, and vibe, write a highly descriptive background and pose prompt for an AI image generator. The background should perfectly complement the clothing (e.g., winter coat -> snowy background or cozy cabin; summer dress -> sunny beach or bright garden; elegant evening wear -> luxury studio or ballroom). Keep it concise, comma-separated. Only output the English prompt string, no markdown, no quotes, no extra text. End with: 'Natural, relaxed, candid dynamic lifestyle pose, happy expression'."
+            content: systemPrompt
           },
           {
             role: "user",
             content: [
-              { type: "text", text: "Suggest the perfect background and pose for this item." },
+              { type: "text", text: "Create a breathtaking, high-end editorial photography prompt for this garment." },
               { type: "image_url", image_url: { url: garmentImage } }
             ]
           }
         ],
-        max_tokens: 150
+        max_tokens: 200,
+        temperature: 0.7
       })
     });
 
@@ -54,6 +65,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ suggestion });
   } catch (error) {
     console.error('Analysis error:', error);
-    return NextResponse.json({ suggestion: "Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose." });
+    return NextResponse.json({ suggestion: "Luxury elegant minimalist studio, raw texture walls, warm softbox lighting, high-end fashion editorial, 8k resolution, photorealistic. Natural, relaxed, candid dynamic pose." });
   }
 }
