@@ -69,18 +69,36 @@ export async function POST(req: Request) {
 
   try {
     const result = await streamText({
-      model: google('gemini-flash-latest') as any,
+      model: google('gemini-1.5-flash-latest') as any,
       system: SYSTEM,
       messages: coreMessages,
     });
-
     return result.toDataStreamResponse();
   } catch (err: any) {
-    let msg = err?.message || 'Unknown error';
-    if (err?.value || err?.cause) {
-      msg += ` | Details: ${JSON.stringify(err.value || err.cause)}`;
+    if (err?.message?.includes('Not Found') || err?.message?.includes('not found')) {
+      // Fallback 1: gemini-flash-latest
+      try {
+        const result2 = await streamText({
+          model: google('gemini-flash-latest') as any,
+          system: SYSTEM,
+          messages: coreMessages,
+        });
+        return result2.toDataStreamResponse();
+      } catch (err2: any) {
+        // Fallback 2: gemini-2.5-flash
+        try {
+          const result3 = await streamText({
+            model: google('gemini-2.5-flash') as any,
+            system: SYSTEM,
+            messages: coreMessages,
+          });
+          return result3.toDataStreamResponse();
+        } catch (err3: any) {
+           return Response.json({ error: 'All Gemini models threw Not Found. Error: ' + err3.message }, { status: 500 });
+        }
+      }
     }
     console.error('Chat API error:', err);
-    return Response.json({ error: msg }, { status: 500 });
+    return Response.json({ error: err?.message || 'Unknown server error' }, { status: 500 });
   }
 }
