@@ -14,25 +14,16 @@ export async function POST(req: Request) {
       });
     }
 
-    const themes = [
-      "Bustling European street cafe in autumn",
-      "Luxurious sun-drenched Mediterranean villa",
-      "Enchanted magical forest with glowing lights",
-      "High-end minimalist wabi-sabi interior",
-      "Royal vintage children's playroom",
-      "Sunny blooming spring garden",
-      "Cozy winter cabin with a fireplace",
-      "Modern art gallery with dramatic lighting",
-      "Beautiful sandy beach resort at golden hour",
-      "Luxury London storefront with elegant window displays"
-    ];
-    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-
     const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise text-extraction engine.
 Analyze the provided clothing image carefully.
 
 Instructions:
-1. "prompt": Create a breathtaking, rich, immersive photography prompt for this garment. The environment MUST be strongly inspired by this exact theme: "${randomTheme}". Include professional lighting terms and a candid natural pose.
+1. "prompt": 
+   - First, determine the SEASON (Summer, Winter, Fall, Spring) and VIBE (formal, casual, sleepwear, outdoor, etc.) of the clothing.
+   - Second, invent a breathtaking, rich, immersive, real-world photography background that LOGICALLY MATCHES the clothing's season and vibe. (e.g., Do NOT put a heavy winter coat on a sunny beach, and do NOT put a summer dress in a snowy cabin).
+   - Third, ensure massive CREATIVE VARIETY. If it's summer, do not always use a beach (use a Tuscan villa garden, a luxury yacht, a sunny botanical greenhouse, a European fruit market, etc.). If it's winter, use a cozy ski lodge, a snowy forest with pine trees, a magical holiday street, etc.
+   - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic) and end with a candid natural lifestyle pose.
+   
 2. "extracted_size": Read the text from the image. Extract ONLY the clothing size or age (e.g., "S.M.L", "2-5", "10-12"). If there is no text indicating size, output "".
 3. "extracted_sku": Read the text from the image. Extract ONLY the product code or model number (e.g., "566-13B", "A123"). If none, output "".
 
@@ -50,7 +41,7 @@ FORMAT: You must respond in pure JSON.
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o", // Upgraded to gpt-4o for flawless OCR
+        model: "gpt-4o", 
         response_format: { type: "json_object" },
         messages: [
           {
@@ -66,7 +57,7 @@ FORMAT: You must respond in pure JSON.
           }
         ],
         max_tokens: 300,
-        temperature: 0.8 // high temp for creative prompts
+        temperature: 0.9 // high temp for maximum creative variety
       })
     });
 
