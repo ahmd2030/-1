@@ -70,7 +70,7 @@ export default function AIStudioPage() {
   
   const analyzeGarment = async (b64: string) => {
     setIsAnalyzing(true);
-    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاستخراج البيانات وابتكار خلفية...");
+    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاستخراج البيانات وابتكار خلفية (يستغرق بضع ثوان)...");
     try {
       const res = await fetch('/api/analyze-garment', {
         method: 'POST',
@@ -80,9 +80,9 @@ export default function AIStudioPage() {
       const data = await res.json();
       if (data.suggestion) {
         setStylePrompt(data.suggestion);
-        if (data.size && data.size.length > 0) setSizes(data.size);
-        if (data.sku && data.sku.length > 0) setProductCode(data.sku);
-        toast.success("تم ابتكار الخلفية واستخراج البيانات من الصورة بنجاح!");
+        if (data.size && data.size.trim().length > 0) setSizes(data.size);
+        if (data.sku && data.sku.trim().length > 0) setProductCode(data.sku);
+        toast.success("تم ابتكار خلفية جديدة واستخراج البيانات بنجاح!");
       }
     } catch(e) {
       setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
@@ -135,12 +135,17 @@ export default function AIStudioPage() {
           ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
           if (sizes) ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
           
-          resolve(canvas.toDataURL('image/jpeg', 0.95));
+          try {
+            resolve(canvas.toDataURL('image/jpeg', 0.95));
+          } catch(e) {
+            console.error("Canvas CORS issue", e);
+            resolve(imageUrl); // Fallback to raw image if canvas is tainted
+          }
         };
         
         if (base64Logo) {
           const logoImg = new Image();
-          logoImg.crossOrigin = "anonymous";
+          // DO NOT use crossOrigin here since it's a base64 string
           logoImg.onload = () => {
             const logoWidth = img.width * 0.20; 
             const aspect = logoImg.height / logoImg.width;

@@ -7,7 +7,6 @@ export async function POST(req: Request) {
     const { garmentImage } = await req.json();
     
     if (!process.env.OPENAI_API_KEY) {
-      console.log("No OpenAI key, using fallback");
       return NextResponse.json({ 
         suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
         size: "",
@@ -15,17 +14,29 @@ export async function POST(req: Request) {
       });
     }
 
-    console.log("Analyzing garment with GPT-4o-mini...");
+    const themes = [
+      "Bustling European street cafe in autumn",
+      "Luxurious sun-drenched Mediterranean villa",
+      "Enchanted magical forest with glowing lights",
+      "High-end minimalist wabi-sabi interior",
+      "Royal vintage children's playroom",
+      "Sunny blooming spring garden",
+      "Cozy winter cabin with a fireplace",
+      "Modern art gallery with dramatic lighting",
+      "Beautiful sandy beach resort at golden hour",
+      "Luxury London storefront with elegant window displays"
+    ];
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
-    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a text-extraction engine.
-Analyze the provided clothing image.
+    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise text-extraction engine.
+Analyze the provided clothing image carefully.
 
 Instructions:
-1. "prompt": Create a breathtaking, rich, immersive, real-world high-end editorial photography prompt for this garment (e.g., Parisian street, magical forest, luxury playroom). NO plain walls. Include professional lighting terms and a natural candid pose.
-2. "extracted_size": Look closely at the image. Is there any text indicating the size or age range? (e.g., 'S.M.L', '2-5', '3-6 months'). If yes, extract it exactly. If no, leave as an empty string "".
-3. "extracted_sku": Look closely at the image. Is there any text indicating a product code, model number, or SKU? (e.g., '566-13B', 'BR-2024'). If yes, extract it exactly. If no, leave as an empty string "".
+1. "prompt": Create a breathtaking, rich, immersive photography prompt for this garment. The environment MUST be strongly inspired by this exact theme: "${randomTheme}". Include professional lighting terms and a candid natural pose.
+2. "extracted_size": Read the text from the image. Extract ONLY the clothing size or age (e.g., "S.M.L", "2-5", "10-12"). If there is no text indicating size, output "".
+3. "extracted_sku": Read the text from the image. Extract ONLY the product code or model number (e.g., "566-13B", "A123"). If none, output "".
 
-FORMAT REQUIRED: You MUST respond ONLY with a raw JSON object. Do not include markdown formatting like \`\`\`json. Just the raw JSON.
+FORMAT: You must respond in pure JSON.
 {
   "prompt": "...",
   "extracted_size": "...",
@@ -39,7 +50,8 @@ FORMAT REQUIRED: You MUST respond ONLY with a raw JSON object. Do not include ma
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o", // Upgraded to gpt-4o for flawless OCR
+        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
@@ -54,42 +66,26 @@ FORMAT REQUIRED: You MUST respond ONLY with a raw JSON object. Do not include ma
           }
         ],
         max_tokens: 300,
-        temperature: 0.2
+        temperature: 0.8 // high temp for creative prompts
       })
     });
 
     const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
     
-    if (data.error) {
-      console.error("OpenAI Error:", data.error);
-      throw new Error(data.error.message);
-    }
-    
-    let resultText = data.choices?.[0]?.message?.content?.trim();
-    if (!resultText) throw new Error("No suggestion returned from OpenAI");
+    const resultText = data.choices?.[0]?.message?.content?.trim();
+    if (!resultText) throw new Error("No suggestion returned");
 
-    // Clean up potential markdown formatting if the model disobeys
-    if (resultText.startsWith("```json")) {
-      resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
-    } else if (resultText.startsWith("```")) {
-      resultText = resultText.replace(/```/g, "").trim();
-    }
-
-    try {
-      const parsed = JSON.parse(resultText);
-      return NextResponse.json({ 
-        suggestion: parsed.prompt || "", 
-        size: parsed.extracted_size || "", 
-        sku: parsed.extracted_sku || "" 
-      });
-    } catch (e) {
-      console.error("Failed to parse JSON from OpenAI:", resultText);
-      return NextResponse.json({ suggestion: resultText, size: "", sku: "" });
-    }
+    const parsed = JSON.parse(resultText);
+    return NextResponse.json({ 
+      suggestion: parsed.prompt || "", 
+      size: parsed.extracted_size || "", 
+      sku: parsed.extracted_sku || "" 
+    });
   } catch (error) {
     console.error('Analysis error:', error);
     return NextResponse.json({ 
-      suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
+      suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "",
       sku: ""
     });
