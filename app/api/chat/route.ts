@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 export const maxDuration = 60;
@@ -63,14 +63,13 @@ export async function POST(req: Request) {
     return m;
   }));
 
-  const google = createOpenAI({
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  const google = createGoogleGenerativeAI({
     apiKey,
   });
 
   try {
     const result = await streamText({
-      model: google('gemini-flash-latest'),
+      model: google('gemini-flash-latest') as any,
       system: SYSTEM,
       messages: coreMessages,
     });
