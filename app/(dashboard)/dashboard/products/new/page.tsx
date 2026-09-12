@@ -1,341 +1,268 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Send, X, Upload, Image as ImageIcon } from "lucide-react";
-import { useChat } from "ai/react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-const AsyncImageGenerator = ({ generateData, base64Image }: { generateData: any; base64Image: string }) => {
-  const [data, setData] = useState<{imageUrl?: string, error?: string, brandName?: string}>({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!generateData || !base64Image) {
-      setData({ error: "بيانات الصورة غير مكتملة" });
-      setLoading(false);
-      return;
-    }
-    
-    fetch('/api/generate/base64', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'ready_to_generate',
-        garmentImage: base64Image,
-        modelType: generateData.modelType,
-        style: generateData.stylePrompt,
-      })
-    })
-    .then(r => r.json())
-    .then(d => {
-       setData(d);
-       setLoading(false);
-       if (d.imageUrl) {
-         try {
-           const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-           localStorage.setItem('ai_fashion_generated_images', JSON.stringify([d.imageUrl, ...existing]));
-           toast.success("تم التوليد بنجاح! الصورة متاحة في معرض الصور المولدة.");
-         } catch(e) {}
-       }
-    })
-    .catch(e => {
-       setData({ error: e.message });
-       setLoading(false);
-    });
-  }, [generateData, base64Image]);
-
-  if (loading) return <p className="text-xs text-green-600 mt-2 font-medium">✨ جاري توليد الصورة في الخلفية (قد يستغرق 30 ثانية)...</p>;
-  if (data.error) return <p className="text-xs text-red-600 mt-2">❌ خطأ: {data.error}</p>;
-  return (
-    <div className="flex flex-col gap-2 mt-4 bg-slate-50 p-3 rounded-xl border">
-      <p className="text-xs text-green-600 font-medium">✨ تم توليد الصورة بنجاح!</p>
-      {data.imageUrl && <img src={data.imageUrl} className="rounded-lg border shadow-sm max-w-full h-auto max-h-80 object-cover" />}
-    </div>
-  );
-};
-
-export default function AIDirectorPage() {
-  const { messages, input, handleInputChange, append, setInput, isLoading, error } = useChat({
-    api: "/api/chat",
-  });
-
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+export default function AIStudioPage() {
+  const [file, setFile] = useState<File | null>(null);
+  const [base64Image, setBase64Image] = useState<string | null>(null);
+  const [modelType, setModelType] = useState<string>("girl");
+  const [stylePrompt, setStylePrompt] = useState<string>("صورة احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   useEffect(() => {
-    if (showGallery) {
-      try {
-        const stored = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-        setGalleryImages(stored);
-      } catch(e) {}
-    }
+    try {
+      const stored = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
+      setGalleryImages(stored);
+    } catch(e) {}
   }, [showGallery]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
     
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUploadedUrls(prev => [...prev, event.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setBase64Image(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleGenerate = async () => {
+    if (!base64Image) {
+      toast.error("الرجاء رفع صورة المنتج أولاً");
+      return;
+    }
     
-    setAttachments(prev => [...prev, ...files]);
-  };
-
-  const removeAttachment = (i: number) => {
-    setAttachments((p) => p.filter((_, idx) => idx !== i));
-    setUploadedUrls((p) => p.filter((_, idx) => idx !== i));
-  };
-
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text && uploadedUrls.length === 0) return;
-
-    const contentParts: any[] = [];
-    if (text) contentParts.push({ type: "text", text });
-    uploadedUrls.forEach((url) =>
-      contentParts.push({ type: "image_url", image_url: { url } })
-    );
-
-    const content = contentParts.length === 1 && contentParts[0].type === "text"
-      ? text
-      : contentParts;
-
-    setInput("");
-    setAttachments([]);
-    setUploadedUrls([]);
-
-    await append({ role: "user", content: content as any });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const res = await fetch('/api/generate/base64', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'ready_to_generate',
+          garmentImage: base64Image,
+          modelType,
+          style: stylePrompt,
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        setError(data.error);
+        toast.error("حدث خطأ أثناء التوليد");
+      } else if (data.imageUrl) {
+        const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
+        const updated = [data.imageUrl, ...existing];
+        localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
+        setGalleryImages(updated);
+        toast.success("تم التوليد بنجاح!");
+        setShowGallery(true); // Open gallery to show result
+      }
+    } catch (e: any) {
+      setError(e.message || "حدث خطأ غير متوقع");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Find latest uploaded image for generation
-  const latestImageMessage = [...messages].reverse().find(m => m.role === 'user' && Array.isArray(m.content) && m.content.some((c:any) => c.type === 'image_url'));
-  const base64Image = latestImageMessage ? (latestImageMessage.content as unknown as any[]).find((c:any) => c.type === 'image_url').image_url.url : null;
-
   return (
-    <div className="flex relative h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
+    <div className="flex relative min-h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
       
-      {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 relative min-w-0">
+      {/* Main Studio Area */}
+      <div className="flex flex-col flex-1 relative min-w-0 bg-slate-50">
+        
         {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex flex-row-reverse justify-between items-center z-10">
+        <div className="bg-slate-900 text-white px-6 py-5 flex flex-row-reverse justify-between items-center z-10 shadow-md">
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <h2 className="font-bold text-lg">المخرج الذكي • AI Director</h2>
-              <p className="text-xs text-slate-400">متخصص في الأزياء والموضة • يبحث على الإنترنت • يتذكر المحادثة</p>
+              <h2 className="font-bold text-xl">استوديو Baby Rose المباشر</h2>
+              <p className="text-sm text-slate-400 mt-1">توليد احترافي وسريع للصور بدون محادثة</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
-              <span className="text-xl">✨</span>
-            </div>
-          </div>
-          <div className="mr-auto flex items-center gap-4">
-            <button 
-              onClick={() => setShowGallery(!showGallery)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span>الصور المولدة</span>
-            </button>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs text-slate-400">Gemini Flash</span>
+            <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-indigo-300" />
             </div>
           </div>
+          <button 
+            onClick={() => setShowGallery(!showGallery)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
+          >
+            <ImageIcon className="w-5 h-5" />
+            <span>الصور المولدة</span>
+            {galleryImages.length > 0 && (
+              <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
+            )}
+          </button>
         </div>
 
-        {/* Error Banner */}
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-2 text-xs text-center border-b border-red-100 font-medium">
-            خطأ: {error.message}
-          </div>
-        )}
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 relative">
-          {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-6 shadow-xl">
-                <span className="text-3xl">✨</span>
-              </div>
-              <h3 className="text-2xl font-bold mb-2 text-slate-800">أهلاً، أنا المخرج الذكي</h3>
-              <p className="text-slate-500 max-w-sm text-sm leading-relaxed">
-                ارفع صور منتجاتك وأخبرني كيف تريد إخراجها. يمكنني تحليل الصور، البحث عن أحدث صيحات الموضة، وتوليد صور احترافية.
-              </p>
-              <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
-                {[
-                  "ما هي أبرز صيحات موضة الأطفال لموسم الخريف 2025؟",
-                  "حلّل هذه الصورة واقترح كيف أحسّن الستايل",
-                  "ولّد صوراً لهذه المنتجات مع شعار Baby Rose بالوردي",
-                ].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setInput(s)}
-                    className="text-right text-sm px-4 py-2.5 rounded-xl border bg-white hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((m) => {
-            let displayContent = "";
-            let generateData = null;
-
-            if (typeof m.content === "string") {
-              const match = m.content.match(/\`\`\`json\s*(\{[\s\S]*?"ACTION"\s*:\s*"GENERATE"[\s\S]*?\})\s*\`\`\`/);
-              if (match) {
-                displayContent = m.content.replace(match[0], '').trim();
-                try {
-                  generateData = JSON.parse(match[1]);
-                } catch(e) {}
-              } else if (m.content.includes('\`\`\`json') && m.content.includes('"ACTION"')) {
-                const parts = m.content.split('\`\`\`json');
-                displayContent = parts[0].trim();
-              } else {
-                displayContent = m.content;
-              }
-            }
-
-            if (!displayContent && !generateData && m.role === 'assistant') return null;
-
-            return (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  m.role === "user"
-                    ? "bg-slate-900 text-white rounded-tl-sm"
-                    : "bg-white border shadow-sm text-slate-800 rounded-tr-sm"
-                }`}>
-                  {displayContent && (
-                    <p className="whitespace-pre-wrap">{displayContent}</p>
-                  )}
-                  {Array.isArray(m.content) && m.content.map((part: any, i: number) => {
-                    if (part.type === "text") return <p key={i} className="whitespace-pre-wrap">{part.text}</p>;
-                    if (part.type === "image_url") return (
-                      <img key={i} src={part.image_url.url} alt="attachment" className="mt-2 rounded-lg max-h-48 object-cover" />
-                    );
-                    return null;
-                  })}
-
-                  {generateData && (
-                    <AsyncImageGenerator generateData={generateData} base64Image={base64Image} />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {isLoading && (
-            <div className="flex justify-end">
-              <div className="bg-white border shadow-sm rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:0.1s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:0.2s]" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="p-4 bg-white border-t z-10">
-          {attachments.length > 0 && (
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
-              {attachments.map((file, i) => (
-                <div key={i} className="relative group shrink-0">
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt="preview"
-                    className="w-16 h-16 object-cover rounded-xl border shadow-sm"
-                  />
-                  <button
-                    onClick={() => removeAttachment(i)}
-                    className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              disabled={isLoading}
-              onClick={handleSend}
-              className="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition-colors shrink-0"
-            >
-              <Send className="w-5 h-5 rtl:-scale-x-100" />
-            </button>
+        {/* Form Container */}
+        <div className="flex-1 overflow-y-auto p-8 flex justify-center">
+          <div className="max-w-2xl w-full space-y-8">
             
-            <div className="flex-1 relative flex items-center">
-              <textarea
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="تحدث مع المخرج... أو ارفع صوراً ليحللها"
-                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all resize-none text-right placeholder:text-right"
-                dir="rtl"
-              />
-              <input
-                type="file"
-                id="file-upload"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <label
-                htmlFor="file-upload"
-                className="absolute left-3 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-              </label>
+            {/* Step 1: Upload */}
+            <div className="bg-white p-6 rounded-2xl border shadow-sm">
+              <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
+                <span>الصورة الأصلية للمنتج</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">1</span>
+              </h3>
+              
+              {!base64Image ? (
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <Upload className="w-10 h-10 text-slate-400 mb-3" />
+                  <p className="font-medium text-slate-600">اضغط هنا لرفع صورة المنتج</p>
+                  <p className="text-xs text-slate-400 mt-1">يفضل أن تكون القطعة واضحة وعلى خلفية بسيطة</p>
+                </div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border group">
+                  <img src={base64Image} alt="Uploaded product" className="w-full h-64 object-contain bg-slate-50" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <label className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold cursor-pointer hover:bg-slate-200">
+                      تغيير الصورة
+                      <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Step 2: Settings */}
+            <div className="bg-white p-6 rounded-2xl border shadow-sm">
+              <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
+                <span>إعدادات العارض والخلفية</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">2</span>
+              </h3>
+              
+              <div className="space-y-6 text-right">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">نوع العارض (الموديل)</label>
+                  <div className="flex flex-row-reverse gap-3">
+                    {[
+                      { id: 'girl', label: 'طفلة (بنت)' },
+                      { id: 'boy', label: 'طفل (ولد)' },
+                      { id: 'woman', label: 'امرأة' },
+                      { id: 'man', label: 'رجل' }
+                    ].map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => setModelType(type.id)}
+                        className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${
+                          modelType === type.id 
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل التصوير والخلفية</label>
+                  <textarea
+                    value={stylePrompt}
+                    onChange={(e) => setStylePrompt(e.target.value)}
+                    dir="rtl"
+                    className="w-full h-24 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+                    placeholder="مثال: استوديو تصوير، خلفية بيضاء نقية، إضاءة سينمائية..."
+                  />
+                  <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
+                    {[
+                      "خلفية ثلجية شتوية ❄️",
+                      "طبيعة وورود ربيعية 🌸",
+                      "استوديو تصوير عصري 📸",
+                      "خلفية باستيل ناعمة 🎨"
+                    ].map(preset => (
+                      <button
+                        key={preset}
+                        onClick={() => setStylePrompt(preset)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg transition-colors border"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-right font-medium text-sm">
+                ❌ {error}
+              </div>
+            )}
+
+            {/* Generate Button */}
+            <button
+              onClick={handleGenerate}
+              disabled={loading || !base64Image}
+              className={`w-full py-5 rounded-2xl font-bold text-lg text-white shadow-xl flex items-center justify-center gap-3 transition-all ${
+                loading || !base64Image 
+                  ? 'bg-slate-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 hover:scale-[1.02]'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span>جاري التوليد الاحترافي (قد يستغرق 30 ثانية)...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-6 h-6" />
+                  <span>بدء جلسة التصوير!</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Gallery Sidebar */}
       {showGallery && (
-        <div className="w-80 bg-slate-50 border-r flex flex-col z-20">
-          <div className="p-4 bg-slate-900 text-white flex flex-row-reverse justify-between items-center">
-            <h3 className="font-bold text-sm">معرض الصور المولدة</h3>
-            <button onClick={() => setShowGallery(false)} className="hover:bg-slate-800 p-1 rounded">
-              <X className="w-4 h-4" />
+        <div className="w-96 bg-white border-l shadow-2xl flex flex-col z-20 absolute left-0 top-0 bottom-0 animate-in slide-in-from-left-8">
+          <div className="p-5 bg-slate-900 text-white flex flex-row-reverse justify-between items-center shadow-md">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-indigo-400" />
+              <h3 className="font-bold text-lg">معرض الصور المولدة</h3>
+            </div>
+            <button onClick={() => setShowGallery(false)} className="hover:bg-slate-800 p-2 rounded-full transition-colors">
+              <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50">
             {galleryImages.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center mt-10">لا توجد صور مولدة بعد.</p>
+              <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                <ImageIcon className="w-12 h-12 mb-3 opacity-20" />
+                <p className="text-sm font-medium">لا توجد صور مولدة بعد</p>
+              </div>
             ) : (
               galleryImages.map((url, i) => (
-                <div key={i} className="group relative rounded-xl overflow-hidden border shadow-sm">
-                  <img src={url} className="w-full h-auto" alt="Generated" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                     <a href={url} target="_blank" className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-200">
-                        عرض بحجم كامل
-                     </a>
-                     <button onClick={() => {
-                        setInput(prev => prev + " " + url + " ");
-                        toast.success("تم إدراج رابط الصورة في المحادثة");
-                     }} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
-                        إرسال للمحادثة
-                     </button>
+                <div key={i} className="bg-white p-2 rounded-2xl shadow-sm border group relative">
+                  <img src={url} className="w-full h-auto rounded-xl" alt="Generated" />
+                  <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-3">
+                    <a href={url} target="_blank" className="px-5 py-2.5 bg-white text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg">
+                      تكبير الصورة وتحميلها
+                    </a>
                   </div>
                 </div>
               ))
