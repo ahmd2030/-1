@@ -14,7 +14,7 @@ export default function AIStudioPage() {
   const [modelType, setModelType] = useState<string>("toddler boy");
   const [category, setCategory] = useState<string>("tops");
   
-  const [stylePrompt, setStylePrompt] = useState<string>("Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose.");
+  const [stylePrompt, setStylePrompt] = useState<string>("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   
   const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
@@ -55,7 +55,7 @@ export default function AIStudioPage() {
   
   const analyzeGarment = async (b64: string) => {
     setIsAnalyzing(true);
-    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاقتراح أفضل ديكور وخلفية تناسبها...");
+    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لابتكار خلفية حية ومبهرة تناسبها...");
     try {
       const res = await fetch('/api/analyze-garment', {
         method: 'POST',
@@ -65,10 +65,10 @@ export default function AIStudioPage() {
       const data = await res.json();
       if (data.suggestion) {
         setStylePrompt(data.suggestion);
-        toast.success("تم تحليل القطعة واقتراح خلفية مناسبة تلقائياً!");
+        toast.success("تم ابتكار خلفية حية ومبهرة للقطعة!");
       }
     } catch(e) {
-      setStylePrompt("Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose.");
+      setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -413,16 +413,16 @@ export default function AIStudioPage() {
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
                       {
-                        label: "غرفة معيشة دافئة (وقفة عفوية ومرحة) 🛋️",
-                        val: "Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose."
+                        label: "شوارع باريس الأنيقة (خلفية غنية ومبهرة) 🗼",
+                        val: "A beautiful cobblestone street in Paris, blurred outdoor cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling happily."
                       },
                       {
-                        label: "حديقة خارجية مشمسة (طبيعة وجمال) 🌿",
-                        val: "Beautiful sunny outdoor garden, green nature, flowers, bright daylight. Natural, happy, candid dynamic lifestyle pose."
+                        label: "غرفة ألعاب خيالية (مليئة بالتفاصيل) 🧸",
+                        val: "A luxurious children's playroom filled with vintage wooden toys, a grand fireplace, rich colorful rugs, warm cozy lighting, beautiful bokeh. Playful candid lifestyle pose, interacting naturally."
                       },
                       {
-                        label: "استوديو فاخر بديكور خفيف (وقفة أنيقة) ✨",
-                        val: "Luxury elegant studio with minimal props, a chic chair, warm lighting. Natural relaxed fashion pose."
+                        label: "حديقة ساحرة مليئة بالأزهار (طبيعة حية) 🌸",
+                        val: "An enchanted sun-drenched garden bursting with colorful spring flowers, tall ancient trees, glowing sunlight rays piercing through branches, shallow depth of field. Joyful twirling or running candid pose."
                       }
                     ].map(preset => (
                       <button
