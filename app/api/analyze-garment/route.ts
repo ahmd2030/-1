@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
 
@@ -6,13 +7,23 @@ export async function POST(req: Request) {
   try {
     const { garmentImage } = await req.json();
     
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ 
         suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
-        size: "No API Key",
-        sku: "No API Key"
+        size: "No Gemini Key",
+        sku: "Add GEMINI_API_KEY"
       });
     }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.9
+      }
+    });
 
     const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise data-extraction engine.
 Analyze the provided clothing image carefully.
@@ -41,42 +52,34 @@ FORMAT: You must respond in pure JSON.
   "extracted_sku": "..."
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini", // Downgraded to gpt-4o-mini to avoid tier restrictions
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Analyze the image and return the JSON object." },
-              { type: "image_url", image_url: { url: garmentImage } }
-            ]
-          }
-        ],
-        max_tokens: 300,
-        temperature: 0.9 
-      })
-    });
-
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(data.error.message || "OpenAI API Error");
-    }
+    // Extract base64 and mime type
+    let base64Data = garmentImage;
+    let mimeType = 'image/jpeg';
     
-    const resultText = data.choices?.[0]?.message?.content?.trim();
-    if (!resultText) throw new Error("No suggestion returned");
+    if (garmentImage.includes(',')) {
+      const parts = garmentImage.split(',');
+      base64Data = parts[1];
+      mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
+    }
 
-    const parsed = JSON.parse(resultText);
+    const imageParts = [
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType
+        }
+      }
+    ];
+
+    const result = await model.generateContent([systemPrompt, ...imageParts]);
+    const responseText = result.response.text();
+    
+    // Clean up just in case
+    let cleanJson = responseText.trim();
+    if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
+    if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
+
+    const parsed = JSON.parse(cleanJson);
     return NextResponse.json({ 
       suggestion: parsed.prompt || "", 
       size: parsed.extracted_size || "", 
@@ -86,7 +89,7 @@ FORMAT: You must respond in pure JSON.
     console.error('Analysis error:', error);
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
-      size: "API Error",
+      size: "Gemini Error",
       sku: error.message ? error.message.substring(0, 20) : "Error"
     });
   }
