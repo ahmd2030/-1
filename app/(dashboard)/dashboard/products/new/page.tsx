@@ -11,7 +11,7 @@ export default function AIStudioPage() {
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [base64ModelImage, setBase64ModelImage] = useState<string | null>(null);
 
-  const [modelType, setModelType] = useState<string>("girl");
+  const [modelType, setModelType] = useState<string>("toddler boy");
   const [category, setCategory] = useState<string>("tops");
   
   const [stylePrompt, setStylePrompt] = useState<string>("إضاءة نهارية محايدة (Neutral Daylight)، خلفية استوديو بيضاء أو رمادية فاتحة جداً لإبراز تفاصيل القطعة وألوانها الأصلية بدون أي انعكاسات لونية");
@@ -324,18 +324,20 @@ export default function AIStudioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">نوع العارض (الموديل)</label>
-                  <div className="flex flex-row-reverse gap-3">
+                  <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
+                  <div className="grid grid-cols-2 gap-3" dir="rtl">
                     {[
-                      { id: 'girl', label: 'طفلة (بنت)' },
-                      { id: 'boy', label: 'طفل (ولد)' },
+                      { id: 'toddler girl', label: 'بنت صغيرة (2-5 سنوات)' },
+                      { id: 'toddler boy', label: 'ولد صغير (2-5 سنوات)' },
+                      { id: 'young girl', label: 'بنت (6-12 سنة)' },
+                      { id: 'young boy', label: 'ولد (6-12 سنة)' },
                       { id: 'woman', label: 'امرأة' },
                       { id: 'man', label: 'رجل' }
                     ].map(type => (
                       <button
                         key={type.id}
                         onClick={() => setModelType(type.id)}
-                        className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${
+                        className={`py-3 px-2 rounded-xl border-2 font-medium text-sm transition-all ${
                           modelType === type.id 
                             ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
                             : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
