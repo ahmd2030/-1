@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Globe, Cpu, Loader2, Send, Plus, X, Upload } from "lucide-react";
 import { useChat } from "ai/react";
