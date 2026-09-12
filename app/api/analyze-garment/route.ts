@@ -14,18 +14,25 @@ export async function POST(req: Request) {
       });
     }
 
-    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise text-extraction engine.
+    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise data-extraction engine.
 Analyze the provided clothing image carefully.
 
 Instructions:
 1. "prompt": 
-   - First, determine the SEASON (Summer, Winter, Fall, Spring) and VIBE (formal, casual, sleepwear, outdoor, etc.) of the clothing.
-   - Second, invent a breathtaking, rich, immersive, real-world photography background that LOGICALLY MATCHES the clothing's season and vibe. (e.g., Do NOT put a heavy winter coat on a sunny beach, and do NOT put a summer dress in a snowy cabin).
-   - Third, ensure massive CREATIVE VARIETY. If it's summer, do not always use a beach (use a Tuscan villa garden, a luxury yacht, a sunny botanical greenhouse, a European fruit market, etc.). If it's winter, use a cozy ski lodge, a snowy forest with pine trees, a magical holiday street, etc.
+   - Determine the SEASON and VIBE of the clothing.
+   - Invent a breathtaking, rich, immersive, real-world photography background that logically matches the clothing.
+   - Ensure massive CREATIVE VARIETY. Do not repeat generic backgrounds.
    - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic) and end with a candid natural lifestyle pose.
    
-2. "extracted_size": Read the text from the image. Extract ONLY the clothing size or age (e.g., "S.M.L", "2-5", "10-12"). If there is no text indicating size, output "".
-3. "extracted_sku": Read the text from the image. Extract ONLY the product code or model number (e.g., "566-13B", "A123"). If none, output "".
+2. "extracted_size": 
+   - Look for any text on the image indicating size (e.g., S, M, L, or 2-5).
+   - If you FIND text, extract it. 
+   - If there is NO text, GUESS the appropriate age or size for this child's garment based on its proportions (e.g., "2-5 Years", "6-12 Years", or "Baby 3-6M"). Do NOT leave it empty.
+
+3. "extracted_sku": 
+   - Look for any text indicating a product code.
+   - If you FIND text, extract it.
+   - If there is NO text, INVENT a professional-looking random product SKU for it (e.g., "BR-8492", "FW24-105", "KIDS-A77"). Do NOT leave it empty.
 
 FORMAT: You must respond in pure JSON.
 {
@@ -57,7 +64,7 @@ FORMAT: You must respond in pure JSON.
           }
         ],
         max_tokens: 300,
-        temperature: 0.9 // high temp for maximum creative variety
+        temperature: 0.9 
       })
     });
 
@@ -77,8 +84,8 @@ FORMAT: You must respond in pure JSON.
     console.error('Analysis error:', error);
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
-      size: "",
-      sku: ""
+      size: "2-5 Years",
+      sku: "BR-" + Math.floor(Math.random() * 9000 + 1000)
     });
   }
 }
