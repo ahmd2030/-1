@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Globe, Cpu, Loader2, Send, X, Upload, Image as ImageIcon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Send, X, Upload, Image as ImageIcon } from "lucide-react";
 import { useChat } from "ai/react";
 import { toast } from "sonner";
 
@@ -11,7 +11,7 @@ const AsyncImageGenerator = ({ generateData, base64Image }: { generateData: any;
 
   useEffect(() => {
     if (!generateData || !base64Image) {
-      setData({ error: "ÈíÇäÇÊ ÇáÕæÑÉ ÛíÑ ãßÊãáÉ" });
+      setData({ error: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØµÙˆØ±Ø© ØºÙŠØ± Ù…ÙƒØªÙ…Ù„Ø©" });
       setLoading(false);
       return;
     }
@@ -31,11 +31,10 @@ const AsyncImageGenerator = ({ generateData, base64Image }: { generateData: any;
        setData(d);
        setLoading(false);
        if (d.imageUrl) {
-         // Save to local storage for the gallery
          try {
            const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
            localStorage.setItem('ai_fashion_generated_images', JSON.stringify([d.imageUrl, ...existing]));
-           toast.success("Êã ÇáÊæáíÏ ÈäÌÇÍ! ÇáÕæÑÉ ãÊÇÍÉ İí ãÚÑÖ ÇáÕæÑ ÇáãæáÏÉ.");
+           toast.success("ØªÙ… Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø¨Ù†Ø¬Ø§Ø­! Ø§Ù„ØµÙˆØ±Ø© Ù…ØªØ§Ø­Ø© ÙÙŠ Ù…Ø¹Ø±Ø¶ Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ÙˆÙ„Ø¯Ø©.");
          } catch(e) {}
        }
     })
@@ -45,11 +44,11 @@ const AsyncImageGenerator = ({ generateData, base64Image }: { generateData: any;
     });
   }, [generateData, base64Image]);
 
-  if (loading) return <p className="text-xs text-green-600 mt-2 font-medium">? ÌÇÑí ÊæáíÏ ÇáÕæÑÉ İí ÇáÎáİíÉ (ŞÏ íÓÊÛÑŞ 30 ËÇäíÉ)...</p>;
-  if (data.error) return <p className="text-xs text-red-600 mt-2">? ÎØÃ: {data.error}</p>;
+  if (loading) return <p className="text-xs text-green-600 mt-2 font-medium">âœ¨ Ø¬Ø§Ø±ÙŠ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØµÙˆØ±Ø© ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© (Ù‚Ø¯ ÙŠØ³ØªØºØ±Ù‚ 30 Ø«Ø§Ù†ÙŠØ©)...</p>;
+  if (data.error) return <p className="text-xs text-red-600 mt-2">âŒ Ø®Ø·Ø£: {data.error}</p>;
   return (
     <div className="flex flex-col gap-2 mt-4 bg-slate-50 p-3 rounded-xl border">
-      <p className="text-xs text-green-600 font-medium">? Êã ÊæáíÏ ÇáÕæÑÉ ÈäÌÇÍ!</p>
+      <p className="text-xs text-green-600 font-medium">âœ¨ ØªÙ… ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØµÙˆØ±Ø© Ø¨Ù†Ø¬Ø§Ø­!</p>
       {data.imageUrl && <img src={data.imageUrl} className="rounded-lg border shadow-sm max-w-full h-auto max-h-80 object-cover" />}
     </div>
   );
@@ -62,7 +61,6 @@ export default function AIDirectorPage() {
 
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
@@ -127,7 +125,7 @@ export default function AIDirectorPage() {
 
   // Find latest uploaded image for generation
   const latestImageMessage = [...messages].reverse().find(m => m.role === 'user' && Array.isArray(m.content) && m.content.some((c:any) => c.type === 'image_url'));
-  const base64Image = latestImageMessage ? (latestImageMessage.content as any[]).find((c:any) => c.type === 'image_url').image_url.url : null;
+  const base64Image = latestImageMessage ? (latestImageMessage.content as unknown as any[]).find((c:any) => c.type === 'image_url').image_url.url : null;
 
   return (
     <div className="flex relative h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
@@ -138,11 +136,11 @@ export default function AIDirectorPage() {
         <div className="bg-slate-900 text-white px-6 py-4 flex flex-row-reverse justify-between items-center z-10">
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <h2 className="font-bold text-lg">ÇáãÎÑÌ ÇáĞßí • AI Director</h2>
-              <p className="text-xs text-slate-400">ãÊÎÕÕ İí ÇáÃÒíÇÁ æÇáãæÖÉ • íÈÍË Úáì ÇáÅäÊÑäÊ • íÊĞßÑ ÇáãÍÇÏËÉ</p>
+              <h2 className="font-bold text-lg">Ø§Ù„Ù…Ø®Ø±Ø¬ Ø§Ù„Ø°ÙƒÙŠ â€¢ AI Director</h2>
+              <p className="text-xs text-slate-400">Ù…ØªØ®ØµØµ ÙÙŠ Ø§Ù„Ø£Ø²ÙŠØ§Ø¡ ÙˆØ§Ù„Ù…ÙˆØ¶Ø© â€¢ ÙŠØ¨Ø­Ø« Ø¹Ù„Ù‰ Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª â€¢ ÙŠØªØ°ÙƒØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
-              <span className="text-xl">?</span>
+              <span className="text-xl">âœ¨</span>
             </div>
           </div>
           <div className="mr-auto flex items-center gap-4">
@@ -151,7 +149,7 @@ export default function AIDirectorPage() {
               className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
             >
               <ImageIcon className="w-4 h-4" />
-              <span>ÇáÕæÑ ÇáãæáÏÉ</span>
+              <span>Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ÙˆÙ„Ø¯Ø©</span>
             </button>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -163,7 +161,7 @@ export default function AIDirectorPage() {
         {/* Error Banner */}
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-2 text-xs text-center border-b border-red-100 font-medium">
-            ÎØÃ: {error.message}
+            Ø®Ø·Ø£: {error.message}
           </div>
         )}
 
@@ -172,17 +170,17 @@ export default function AIDirectorPage() {
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
               <div className="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-6 shadow-xl">
-                <span className="text-3xl">?</span>
+                <span className="text-3xl">âœ¨</span>
               </div>
-              <h3 className="text-2xl font-bold mb-2 text-slate-800">ÃåáÇğ¡ ÃäÇ ÇáãÎÑÌ ÇáĞßí</h3>
+              <h3 className="text-2xl font-bold mb-2 text-slate-800">Ø£Ù‡Ù„Ø§Ù‹ØŒ Ø£Ù†Ø§ Ø§Ù„Ù…Ø®Ø±Ø¬ Ø§Ù„Ø°ÙƒÙŠ</h3>
               <p className="text-slate-500 max-w-sm text-sm leading-relaxed">
-                ÇÑİÚ ÕæÑ ãäÊÌÇÊß æÃÎÈÑäí ßíİ ÊÑíÏ ÅÎÑÇÌåÇ. íãßääí ÊÍáíá ÇáÕæÑ¡ ÇáÈÍË Úä ÃÍÏË ÕíÍÇÊ ÇáãæÖÉ¡ æÊæáíÏ ÕæÑ ÇÍÊÑÇİíÉ.
+                Ø§Ø±ÙØ¹ ØµÙˆØ± Ù…Ù†ØªØ¬Ø§ØªÙƒ ÙˆØ£Ø®Ø¨Ø±Ù†ÙŠ ÙƒÙŠÙ ØªØ±ÙŠØ¯ Ø¥Ø®Ø±Ø§Ø¬Ù‡Ø§. ÙŠÙ…ÙƒÙ†Ù†ÙŠ ØªØ­Ù„ÙŠÙ„ Ø§Ù„ØµÙˆØ±ØŒ Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ø£Ø­Ø¯Ø« ØµÙŠØ­Ø§Øª Ø§Ù„Ù…ÙˆØ¶Ø©ØŒ ÙˆØªÙˆÙ„ÙŠØ¯ ØµÙˆØ± Ø§Ø­ØªØ±Ø§ÙÙŠØ©.
               </p>
               <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
                 {[
-                  "ãÇ åí ÃÈÑÒ ÕíÍÇÊ ãæÖÉ ÇáÃØİÇá áãæÓã ÇáÎÑíİ 2025¿",
-                  "Íáøá åĞå ÇáÕæÑÉ æÇŞÊÑÍ ßíİ ÃÍÓøä ÇáÓÊÇíá",
-                  "æáøÏ ÕæÑÇğ áåĞå ÇáãäÊÌÇÊ ãÚ ÔÚÇÑ Baby Rose ÈÇáæÑÏí",
+                  "Ù…Ø§ Ù‡ÙŠ Ø£Ø¨Ø±Ø² ØµÙŠØ­Ø§Øª Ù…ÙˆØ¶Ø© Ø§Ù„Ø£Ø·ÙØ§Ù„ Ù„Ù…ÙˆØ³Ù… Ø§Ù„Ø®Ø±ÙŠÙ 2025ØŸ",
+                  "Ø­Ù„Ù‘Ù„ Ù‡Ø°Ù‡ Ø§Ù„ØµÙˆØ±Ø© ÙˆØ§Ù‚ØªØ±Ø­ ÙƒÙŠÙ Ø£Ø­Ø³Ù‘Ù† Ø§Ù„Ø³ØªØ§ÙŠÙ„",
+                  "ÙˆÙ„Ù‘Ø¯ ØµÙˆØ±Ø§Ù‹ Ù„Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ù…Ø¹ Ø´Ø¹Ø§Ø± Baby Rose Ø¨Ø§Ù„ÙˆØ±Ø¯ÙŠ",
                 ].map((s) => (
                   <button
                     key={s}
@@ -201,15 +199,14 @@ export default function AIDirectorPage() {
             let generateData = null;
 
             if (typeof m.content === "string") {
-              const match = m.content.match(/\\\json\s*(\{[\s\S]*?"ACTION"\s*:\s*"GENERATE"[\s\S]*?\})\s*\\\/);
+              const match = m.content.match(/\`\`\`json\s*(\{[\s\S]*?"ACTION"\s*:\s*"GENERATE"[\s\S]*?\})\s*\`\`\`/);
               if (match) {
                 displayContent = m.content.replace(match[0], '').trim();
                 try {
                   generateData = JSON.parse(match[1]);
                 } catch(e) {}
-              } else if (m.content.includes('\\\json') && m.content.includes('"ACTION"')) {
-                // Streaming partial json
-                const parts = m.content.split('\\\json');
+              } else if (m.content.includes('\`\`\`json') && m.content.includes('"ACTION"')) {
+                const parts = m.content.split('\`\`\`json');
                 displayContent = parts[0].trim();
               } else {
                 displayContent = m.content;
@@ -219,8 +216,12 @@ export default function AIDirectorPage() {
             if (!displayContent && !generateData && m.role === 'assistant') return null;
 
             return (
-              <div key={m.id} className={lex }>
-                <div className={max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed }>
+              <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-slate-900 text-white rounded-tl-sm"
+                    : "bg-white border shadow-sm text-slate-800 rounded-tr-sm"
+                }`}>
                   {displayContent && (
                     <p className="whitespace-pre-wrap">{displayContent}</p>
                   )}
@@ -274,7 +275,7 @@ export default function AIDirectorPage() {
 
           <div className="flex gap-2">
             <button
-              disabled={isLoading || uploading}
+              disabled={isLoading}
               onClick={handleSend}
               className="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition-colors shrink-0"
             >
@@ -286,7 +287,7 @@ export default function AIDirectorPage() {
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="ÊÍÏË ãÚ ÇáãÎÑÌ... Ãæ ÇÑİÚ ÕæÑÇğ áíÍááåÇ"
+                placeholder="ØªØ­Ø¯Ø« Ù…Ø¹ Ø§Ù„Ù…Ø®Ø±Ø¬... Ø£Ùˆ Ø§Ø±ÙØ¹ ØµÙˆØ±Ø§Ù‹ Ù„ÙŠØ­Ù„Ù„Ù‡Ø§"
                 className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all resize-none text-right placeholder:text-right"
                 dir="rtl"
               />
@@ -312,29 +313,28 @@ export default function AIDirectorPage() {
       {/* Gallery Sidebar */}
       {showGallery && (
         <div className="w-80 bg-slate-50 border-r flex flex-col z-20">
-          <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
-            <h3 className="font-bold text-sm">ãÚÑÖ ÇáÕæÑ ÇáãæáÏÉ</h3>
+          <div className="p-4 bg-slate-900 text-white flex flex-row-reverse justify-between items-center">
+            <h3 className="font-bold text-sm">Ù…Ø¹Ø±Ø¶ Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ÙˆÙ„Ø¯Ø©</h3>
             <button onClick={() => setShowGallery(false)} className="hover:bg-slate-800 p-1 rounded">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {galleryImages.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center mt-10">áÇ ÊæÌÏ ÕæÑ ãæáÏÉ ÈÚÏ.</p>
+              <p className="text-xs text-slate-500 text-center mt-10">Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙˆØ± Ù…ÙˆÙ„Ø¯Ø© Ø¨Ø¹Ø¯.</p>
             ) : (
               galleryImages.map((url, i) => (
                 <div key={i} className="group relative rounded-xl overflow-hidden border shadow-sm">
                   <img src={url} className="w-full h-auto" alt="Generated" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                      <a href={url} target="_blank" className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-200">
-                        ÚÑÖ ÈÍÌã ßÇãá
+                        Ø¹Ø±Ø¶ Ø¨Ø­Ø¬Ù… ÙƒØ§Ù…Ù„
                      </a>
                      <button onClick={() => {
-                        // Insert into chat input
-                        setInput(prev => prev + " [ÇäÙÑ áåĞå ÇáÕæÑÉ: " + url + "] ");
-                        toast.success("Êã ÅÏÑÇÌ ÑÇÈØ ÇáÕæÑÉ İí ãÑÈÚ ÇáãÍÇÏËÉ");
+                        setInput(prev => prev + " " + url + " ");
+                        toast.success("ØªÙ… Ø¥Ø¯Ø±Ø§Ø¬ Ø±Ø§Ø¨Ø· Ø§Ù„ØµÙˆØ±Ø© ÙÙŠ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©");
                      }} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
-                        ÅÑÓÇá ááãÍÇÏËÉ
+                        Ø¥Ø±Ø³Ø§Ù„ Ù„Ù„Ù…Ø­Ø§Ø¯Ø«Ø©
                      </button>
                   </div>
                 </div>

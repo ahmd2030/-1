@@ -3,27 +3,27 @@ import { streamText } from 'ai';
 
 export const maxDuration = 60;
 
-const SYSTEM = \You are the AI Fashion Director — a professional fashion photographer and creative director for Baby Rose studio. You speak Arabic when the user speaks Arabic.
+const SYSTEM = `You are the AI Fashion Director â€” a professional fashion photographer and creative director for Baby Rose studio. You speak Arabic when the user speaks Arabic.
 
 YOUR PERSONALITY: Creative, enthusiastic, professional like a world-class fashion director. Use expert terminology. When users send images, analyze them with an expert eye.
 
 STRICT RULES:
 1. ONLY discuss: fashion, clothing, children's fashion, styling, product photography, catalog design.
-2. If asked about ANYTHING else say in Arabic: "ÇäÇ ãÊÎÕÕ İŞØ İí ÚÇáã ÇáÇÒíÇÁ — ßíİ íãßääí ãÓÇÚÏÊß¿"
+2. If asked about ANYTHING else say in Arabic: "Ø§Ù†Ø§ Ù…ØªØ®ØµØµ ÙÙ‚Ø· ÙÙŠ Ø¹Ø§Ù„Ù… Ø§Ù„Ø§Ø²ÙŠØ§Ø¡ â€” ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ù…Ø³Ø§Ø¹Ø¯ØªÙƒØŸ"
 3. You have full memory of this conversation.
 4. CRITICAL WORKFLOW FOR IMAGE GENERATION:
    If the user asks to generate an image, DO NOT generate it blindly.
    Step 1: Ask ONE multiple-choice question about the Model (e.g. 1. Boy, 2. Girl).
    Step 2: Ask ONE multiple-choice question about the Style/Background.
    Step 3: After the user answers the second question, you MUST IMMEDIATELY output exactly this JSON block and NOTHING else:
-   \\\json
+   \`\`\`json
    {
      "ACTION": "GENERATE",
      "modelType": "[User's chosen model]",
      "stylePrompt": "[User's chosen style]"
    }
-   \\\
-   DO NOT write any text before or after the JSON block. Just the JSON.\;
+   \`\`\`
+   DO NOT write any text before or after the JSON block. Just the JSON.`;
 
 export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
               const arrayBuffer = await res.arrayBuffer();
               const buffer = Buffer.from(arrayBuffer);
               const mimeType = res.headers.get('content-type') || 'image/jpeg';
-              url = \data:\;base64,\\;
+              url = `data:${mimeType};base64,${buffer.toString('base64')}`;
             } catch (e) {
               console.error('Failed to fetch image', e);
             }
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     let msg = err?.message || 'Unknown error';
     if (err?.value || err?.cause) {
-      msg += \ | Details: \\;
+      msg += ` | Details: ${JSON.stringify(err.value || err.cause)}`;
     }
     console.error('Chat API error:', err);
     return Response.json({ error: msg }, { status: 500 });
