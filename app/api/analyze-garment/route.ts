@@ -7,7 +7,9 @@ export async function POST(req: Request) {
   try {
     const { garmentImage } = await req.json();
     
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI;
+    
+    if (!apiKey) {
       return NextResponse.json({ 
         suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
         size: "No Gemini Key",
@@ -15,7 +17,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
