@@ -6,14 +6,12 @@ export const maxDuration = 60; // 60 seconds
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { garmentImage, modelType, style, brandName, promoText } = body;
+    const { garmentImage, modelType, style, category, brandName, promoText } = body;
 
     if (!garmentImage) {
       return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    // FASHN API requires a valid HTTP URL. We must upload the base64 data URI to an image host first.
-    // garmentImage is a Data URI: "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
     const base64Data = garmentImage.split(',')[1];
     
     const uploadFormData = new URLSearchParams();
@@ -29,7 +27,7 @@ export async function POST(request: Request) {
     });
 
     if (!uploadRes.ok) {
-      throw new Error('فشل في رفع الصورة إلى الخادم المؤقت');
+      throw new Error('Failed to upload image to temporary host');
     }
 
     const uploadData = await uploadRes.json();
@@ -38,8 +36,8 @@ export async function POST(request: Request) {
     const provider = new FashnProvider();
     
     const result = await provider.generate({
-      garmentImage: hostedImageUrl, // Pass the HTTP URL instead of base64
-      category: 'tops',
+      garmentImage: hostedImageUrl,
+      category: category || 'tops',
       modelType,
       style,
     });

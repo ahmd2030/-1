@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { Upload, Image as ImageIcon, Loader2, Sparkles, X, CheckCircle2 } from "lucide-react";
@@ -8,6 +8,7 @@ export default function AIStudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [modelType, setModelType] = useState<string>("girl");
+  const [category, setCategory] = useState<string>("tops");
   const [stylePrompt, setStylePrompt] = useState<string>("صورة احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
   
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,7 @@ export default function AIStudioPage() {
           status: 'ready_to_generate',
           garmentImage: base64Image,
           modelType,
+          category,
           style: stylePrompt,
         })
       });
@@ -69,7 +71,7 @@ export default function AIStudioPage() {
         localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
         setGalleryImages(updated);
         toast.success("تم التوليد بنجاح!");
-        setShowGallery(true); // Open gallery to show result
+        setShowGallery(true);
       }
     } catch (e: any) {
       setError(e.message || "حدث خطأ غير متوقع");
@@ -81,10 +83,8 @@ export default function AIStudioPage() {
   return (
     <div className="flex relative min-h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
       
-      {/* Main Studio Area */}
       <div className="flex flex-col flex-1 relative min-w-0 bg-slate-50">
         
-        {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-5 flex flex-row-reverse justify-between items-center z-10 shadow-md">
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -107,11 +107,9 @@ export default function AIStudioPage() {
           </button>
         </div>
 
-        {/* Form Container */}
         <div className="flex-1 overflow-y-auto p-8 flex justify-center">
           <div className="max-w-2xl w-full space-y-8">
             
-            {/* Step 1: Upload */}
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
                 <span>الصورة الأصلية للمنتج</span>
@@ -143,7 +141,6 @@ export default function AIStudioPage() {
               )}
             </div>
 
-            {/* Step 2: Settings */}
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
                 <span>إعدادات العارض والخلفية</span>
@@ -151,6 +148,30 @@ export default function AIStudioPage() {
               </h3>
               
               <div className="space-y-6 text-right">
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">نوع القطعة المرفوعة</label>
+                  <div className="flex flex-row-reverse gap-3">
+                    {[
+                      { id: 'tops', label: 'قطعة علوية / جاكيت' },
+                      { id: 'bottoms', label: 'بنطلون / تنورة' },
+                      { id: 'one-pieces', label: 'فستان / طقم كامل' }
+                    ].map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => setCategory(type.id)}
+                        className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${
+                          category === type.id 
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-3">نوع العارض (الموديل)</label>
                   <div className="flex flex-row-reverse gap-3">
@@ -176,7 +197,7 @@ export default function AIStudioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل التصوير والخلفية</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل التصوير والخلفية (الوصف التفصيلي يعطي نتائج أفضل)</label>
                   <textarea
                     value={stylePrompt}
                     onChange={(e) => setStylePrompt(e.target.value)}
@@ -186,10 +207,10 @@ export default function AIStudioPage() {
                   />
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
+                      "صورة واقعية عالية الدقة 8K، إضاءة استوديو تصوير احترافية 📸",
                       "خلفية ثلجية شتوية ❄️",
                       "طبيعة وورود ربيعية 🌸",
-                      "استوديو تصوير عصري 📸",
-                      "خلفية باستيل ناعمة 🎨"
+                      "خلفية بيضاء نقية للتجارة الإلكترونية 🛒"
                     ].map(preset => (
                       <button
                         key={preset}
@@ -204,14 +225,12 @@ export default function AIStudioPage() {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-right font-medium text-sm">
                 ❌ {error}
               </div>
             )}
 
-            {/* Generate Button */}
             <button
               onClick={handleGenerate}
               disabled={loading || !base64Image}
@@ -237,7 +256,6 @@ export default function AIStudioPage() {
         </div>
       </div>
 
-      {/* Gallery Sidebar */}
       {showGallery && (
         <div className="w-96 bg-white border-l shadow-2xl flex flex-col z-20 absolute left-0 top-0 bottom-0 animate-in slide-in-from-left-8">
           <div className="p-5 bg-slate-900 text-white flex flex-row-reverse justify-between items-center shadow-md">

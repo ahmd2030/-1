@@ -1,6 +1,5 @@
-import { AIProvider, AIGenerationOptions, AIGenerationResult } from './provider';
+﻿import { AIProvider, AIGenerationOptions, AIGenerationResult } from './provider';
 
-// Default model images for Try-on
 const DEFAULT_MODELS: Record<string, string> = {
   man: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80',
   woman: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80',
@@ -17,29 +16,35 @@ export class FashnProvider implements AIProvider {
       throw new Error('FASHN_API_KEY is not configured');
     }
 
-    // Fallback to a predefined model image if the user selected a category
-    const modelImageUrl = DEFAULT_MODELS[options.modelType || 'woman'] || DEFAULT_MODELS['woman'];
-
-    // Convert our internal category to FASHN categories (tops, bottoms, one-pieces)
     let fashnCategory = 'tops';
-    if (options.category.toLowerCase().includes('pant') || options.category.toLowerCase().includes('skirt')) {
-      fashnCategory = 'bottoms';
-    } else if (options.category.toLowerCase().includes('dress') || options.category.toLowerCase().includes('jumpsuit')) {
-      fashnCategory = 'one-pieces';
+    if (options.category) {
+       if (options.category.toLowerCase().includes('pant') || options.category.toLowerCase().includes('skirt') || options.category.toLowerCase().includes('bottom')) {
+         fashnCategory = 'bottoms';
+       } else if (options.category.toLowerCase().includes('dress') || options.category.toLowerCase().includes('jumpsuit') || options.category.toLowerCase().includes('one-piece')) {
+         fashnCategory = 'one-pieces';
+       }
     }
 
     try {
-      console.log("Calling FASHN API...");
-      // If the user provided an inspiration image (modelImage), we MUST use 'tryon-max' to preserve their pose/background.
-      // Otherwise, use 'product-to-model' for fully automated generation.
+      console.log('Calling FASHN API...');
+      
       const modelName = options.modelImage ? 'tryon-max' : 'product-to-model';
       
+      const promptText = `A highly detailed, professional fashion photography shot of a ${options.modelType || 'person'} wearing the garment. ${options.style || 'High fashion, studio lighting, 8k resolution, photorealistic.'}`;
+      const negativePrompt = 'ugly, deformed, bad anatomy, mannequins, text, watermark, bad lighting, low quality, cartoon, illustration';
+
       const inputs: any = {
         product_image: options.garmentImage,
+        category: fashnCategory,
+        prompt: promptText,
+        negative_prompt: negativePrompt,
+        num_samples: 1
       };
 
       if (options.modelImage) {
         inputs.model_image = options.modelImage;
+      } else {
+        inputs.garment_direction = 'front';
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {
@@ -56,46 +61,44 @@ export class FashnProvider implements AIProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("FASHN API Error Details:", errorText);
+        console.error('FASHN API Error Details:', errorText);
         throw new Error(`FASHN API Error: ${errorText}`);
       }
 
       const data = await response.json();
       
       if (data.error) {
-        console.error("FASHN returned error:", data.error);
+        console.error('FASHN returned error:', data.error);
         throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
       }
 
-      // FASHN usually returns an ID that needs to be polled, or returns the image directly if synchronous.
       if (data.id) {
         return await this.pollStatus(data.id, apiKey);
       }
 
-      // Fallback if it returns image immediately
       const outputUrl = data.output?.[0] || data.image_url;
       
       if (!outputUrl) {
-        console.error("Unexpected FASHN response:", data);
-        throw new Error("Invalid response format from FASHN API");
+        console.error('Unexpected FASHN response:', data);
+        throw new Error('Invalid response format from FASHN API');
       }
 
       return {
         id: data.id || `fashn-${Date.now()}`,
         imageUrl: outputUrl,
         provider: 'fashn',
-        model: 'tryon-max',
+        model: modelName,
         cost: 1,
       };
     } catch (error) {
-      console.error("Fashn Provider Error:", error);
+      console.error('Fashn Provider Error:', error);
       throw error;
     }
   }
 
   private async pollStatus(id: string, apiKey: string): Promise<AIGenerationResult> {
     let attempts = 0;
-    const maxAttempts = 30; // 1 minute roughly
+    const maxAttempts = 40; 
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -106,7 +109,7 @@ export class FashnProvider implements AIProvider {
         }
       });
       
-      if (!response.ok) throw new Error("Failed to poll FASHN status");
+      if (!response.ok) throw new Error('Failed to poll FASHN status');
       
       const data = await response.json();
       
@@ -119,12 +122,12 @@ export class FashnProvider implements AIProvider {
           cost: 1,
         };
       } else if (data.status === 'failed' || data.error) {
-        throw new Error(data.error || "FASHN generation failed");
+        throw new Error(data.error || 'FASHN generation failed');
       }
       
       attempts++;
     }
     
-    throw new Error("Timeout waiting for FASHN API");
+    throw new Error('Timeout waiting for FASHN API');
   }
 }
