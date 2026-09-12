@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
@@ -14,10 +14,8 @@ export default function AIStudioPage() {
   const [modelType, setModelType] = useState<string>("girl");
   const [category, setCategory] = useState<string>("tops");
   
-  // Default to a highly-optimized crisp lighting prompt
   const [stylePrompt, setStylePrompt] = useState<string>("إضاءة نهارية محايدة (Neutral Daylight)، خلفية استوديو بيضاء أو رمادية فاتحة جداً لإبراز تفاصيل القطعة وألوانها الأصلية بدون أي انعكاسات لونية");
   
-  // Catalogue Mode States
   const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
   const [brandName, setBrandName] = useState<string>("Baby Rose");
   const [productCode, setProductCode] = useState<string>("BR-2024");
@@ -29,7 +27,6 @@ export default function AIStudioPage() {
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   
-  // Canvas Ref for merging
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -174,16 +171,28 @@ export default function AIStudioPage() {
               <Sparkles className="w-6 h-6 text-indigo-300" />
             </div>
           </div>
-          <button 
-            onClick={() => setShowGallery(!showGallery)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
-          >
-            <ImageIcon className="w-5 h-5" />
-            <span>الصور المولدة</span>
-            {galleryImages.length > 0 && (
-              <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
-            )}
-          </button>
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <button 
+              onClick={() => setShowGallery(!showGallery)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
+            >
+              <ImageIcon className="w-5 h-5" />
+              <span>الصور المولدة</span>
+              {galleryImages.length > 0 && (
+                <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
+              )}
+            </button>
+
+            <a 
+              href="https://fashn.ai/console" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white"
+            >
+              <span>التحقق من الرصيد (FASHN)</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 flex justify-center">
