@@ -53,49 +53,86 @@ FORMAT: You must respond in pure JSON.
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data
-                }
+    const payload = {
+      contents: [
+        {
+          parts: [
+            { text: systemPrompt },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
               }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.9,
-          responseMimeType: "application/json"
+            }
+          ]
         }
-      })
-    });
+      ],
+      generationConfig: {
+        temperature: 0.9
+      }
+    };
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error?.message || `HTTP Error ${response.status}`);
+    // Try multiple models
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    let data: any = null;
+    let lastError = "";
+
+    for (const model of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      data = await response.json();
+      
+      if (response.ok) {
+        lastError = "";
+        break; // Success!
+      } else {
+        lastError = data.error?.message || `HTTP ${response.status}`;
+        // If the error is not "not found", stop trying
+        if (!lastError.includes("not found")) {
+          break;
+        }
+      }
+    }
+
+    // If all failed, let's list the available models to debug
+    if (lastError) {
+      const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+      const modelsRes = await fetch(modelsUrl);
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json();
+        const availableModels = modelsData.models?.map((m: any) => m.name.replace('models/', '')).filter((m:string) => m.includes('gemini')).join(', ');
+        throw new Error(`Models failed. Available for your key: ${availableModels}`);
+      }
+      throw new Error(lastError);
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!resultText) throw new Error("No suggestion returned");
 
-    // Clean up just in case
+    // Clean up markdown JSON block if present
     let cleanJson = resultText.trim();
     if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
     if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
 
-    const parsed = JSON.parse(cleanJson);
+    // Sometimes Gemini forgets to output valid JSON if responseMimeType is not forced.
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanJson);
+    } catch(e) {
+      // Emergency fallback parsing
+      const extractedSize = cleanJson.match(/"extracted_size":\s*"([^"]+)"/)?.[1] || "";
+      const extractedSku = cleanJson.match(/"extracted_sku":\s*"([^"]+)"/)?.[1] || "";
+      parsed = {
+        prompt: cleanJson,
+        extracted_size: extractedSize,
+        extracted_sku: extractedSku
+      };
+    }
+
     return NextResponse.json({ 
       suggestion: parsed.prompt || "", 
       size: parsed.extracted_size || "", 
@@ -106,7 +143,7 @@ FORMAT: You must respond in pure JSON.
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
-      sku: error.message ? error.message : "Unknown Error"
+      sku: error.message ? error.message.substring(0, 45) : "Unknown Error"
     });
   }
 }
