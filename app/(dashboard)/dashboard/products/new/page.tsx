@@ -40,6 +40,37 @@ export default function AIStudioPage() {
     } catch(e) {}
   }, [showGallery]);
 
+  const resizeImageForAnalysis = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = dataUrl;
+    });
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const selectedFile = e.target.files[0];
@@ -71,21 +102,35 @@ export default function AIStudioPage() {
   const analyzeGarment = async (b64: string) => {
     setIsAnalyzing(true);
     setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاستخراج البيانات وابتكار خلفية (يستغرق بضع ثوان)...");
+    setError(null);
     try {
+      const optimizedImage = await resizeImageForAnalysis(b64);
+      
       const res = await fetch('/api/analyze-garment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ garmentImage: b64 })
+        body: JSON.stringify({ garmentImage: optimizedImage })
       });
-      const data = await res.json();
+      
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch(err) {
+        console.error("Server returned non-JSON:", text);
+        throw new Error("فشل الخادم في الرد. قد تكون الصورة كبيرة جداً أو هناك ضغط على السيرفر.");
+      }
+
       if (data.suggestion) {
         setStylePrompt(data.suggestion);
         if (data.size && data.size.trim().length > 0) setSizes(data.size);
         if (data.sku && data.sku.trim().length > 0) setProductCode(data.sku);
         toast.success("تم ابتكار خلفية جديدة واستخراج البيانات بنجاح!");
       }
-    } catch(e) {
+    } catch(e: any) {
+      console.error(e);
       setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
+      toast.error("تعذر تحليل الصورة آلياً (لكن يمكنك المتابعة بتوليد الصورة)");
     } finally {
       setIsAnalyzing(false);
     }
@@ -139,13 +184,12 @@ export default function AIStudioPage() {
             resolve(canvas.toDataURL('image/jpeg', 0.95));
           } catch(e) {
             console.error("Canvas CORS issue", e);
-            resolve(imageUrl); // Fallback to raw image if canvas is tainted
+            resolve(imageUrl); 
           }
         };
         
         if (base64Logo) {
           const logoImg = new Image();
-          // DO NOT use crossOrigin here since it's a base64 string
           logoImg.onload = () => {
             const logoWidth = img.width * 0.20; 
             const aspect = logoImg.height / logoImg.width;
@@ -159,7 +203,6 @@ export default function AIStudioPage() {
             finishDrawingText();
           };
           logoImg.onerror = () => {
-            console.error("Failed to load logo image onto canvas");
             finishDrawingText();
           };
           logoImg.src = base64Logo;
