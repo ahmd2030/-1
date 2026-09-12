@@ -92,7 +92,7 @@ FORMAT: You must respond in pure JSON.
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
-      sku: error.message ? error.message.substring(0, 20) : "Error"
+      sku: error.message ? error.message : "Unknown Error"
     });
   }
 }
