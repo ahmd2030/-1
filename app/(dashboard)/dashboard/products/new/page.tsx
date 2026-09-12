@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import React, { useState, useEffect } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
@@ -15,11 +15,20 @@ export default function AIStudioPage() {
   const [category, setCategory] = useState<string>("tops");
   const [stylePrompt, setStylePrompt] = useState<string>("صورة كاملة (من الرأس للقدمين)، استوديو بألوان دافئة، أرضية خشبية، وديكورات خفيفة وأنيقة في الخلفية");
   
+  // Catalogue Mode States
+  const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
+  const [brandName, setBrandName] = useState<string>("Baby Rose");
+  const [productCode, setProductCode] = useState<string>("BR-2024");
+  const [sizes, setSizes] = useState<string>("S.M.L | 2-5 Years");
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  
+  // Canvas Ref for merging
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     try {
@@ -52,6 +61,58 @@ export default function AIStudioPage() {
     reader.readAsDataURL(selectedFile);
   };
 
+  const applyCatalogueOverlay = (imageUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!catalogueMode || !canvasRef.current) {
+        resolve(imageUrl);
+        return;
+      }
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(imageUrl);
+      
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw original image
+        ctx.drawImage(img, 0, 0);
+        
+        // Setup text styles
+        const padding = img.width * 0.05;
+        
+        // 1. Draw Brand Name (Top Leftish - Cursive/Elegant)
+        ctx.fillStyle = "#ff6b81"; // elegant pink for Baby Rose
+        ctx.font = `italic bold ${img.width * 0.08}px Georgia, serif`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.shadowColor = "rgba(255,255,255,0.8)";
+        ctx.shadowBlur = 10;
+        ctx.fillText(brandName, padding, padding);
+        
+        // 2. Draw Product Code (Top Right - Modern Bold)
+        ctx.fillStyle = "#1e293b"; // dark slate
+        ctx.font = `bold ${img.width * 0.05}px Arial, sans-serif`;
+        ctx.textAlign = "right";
+        ctx.shadowBlur = 0; // reset shadow
+        ctx.fillText(productCode, img.width - padding, padding);
+        
+        // 3. Draw Sizes (Under Product Code)
+        ctx.fillStyle = "#475569"; // slate gray
+        ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
+        ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
+        
+        // Return composed image
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
+      };
+      img.onerror = () => resolve(imageUrl);
+      img.src = imageUrl;
+    });
+  };
+
   const handleGenerate = async () => {
     if (!base64Image) {
       toast.error("الرجاء رفع صورة المنتج أولاً");
@@ -81,11 +142,17 @@ export default function AIStudioPage() {
         setError(data.error);
         toast.error("حدث خطأ أثناء التوليد");
       } else if (data.imageUrl) {
+        
+        // Apply Catalogue Overlay locally!
+        toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
+        const finalImageUrl = await applyCatalogueOverlay(data.imageUrl);
+        
         const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-        const updated = [data.imageUrl, ...existing];
+        const updated = [finalImageUrl, ...existing];
         localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
         setGalleryImages(updated);
-        toast.success("تم التوليد بنجاح!");
+        
+        toast.success("تم التوليد والتصميم بنجاح!");
         setShowGallery(true);
       }
     } catch (e: any) {
@@ -98,13 +165,15 @@ export default function AIStudioPage() {
   return (
     <div className="flex relative min-h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
       
+      <canvas ref={canvasRef} className="hidden" />
+
       <div className="flex flex-col flex-1 relative min-w-0 bg-slate-50">
         
         <div className="bg-slate-900 text-white px-6 py-5 flex flex-row-reverse justify-between items-center z-10 shadow-md">
           <div className="flex items-center gap-3">
             <div className="text-right">
               <h2 className="font-bold text-xl">استوديو Baby Rose المباشر</h2>
-              <p className="text-sm text-slate-400 mt-1">توليد احترافي وسريع للصور بدون محادثة</p>
+              <p className="text-sm text-slate-400 mt-1">توليد احترافي وتصميم كتالوج بضغطة زر</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-indigo-300" />
@@ -141,7 +210,6 @@ export default function AIStudioPage() {
                   />
                   <Upload className="w-10 h-10 text-slate-400 mb-3" />
                   <p className="font-medium text-slate-600">اضغط هنا لرفع صورة المنتج</p>
-                  <p className="text-xs text-slate-400 mt-1">يفضل أن تكون القطعة واضحة وعلى خلفية بسيطة</p>
                 </div>
               ) : (
                 <div className="relative rounded-xl overflow-hidden border group">
@@ -156,14 +224,46 @@ export default function AIStudioPage() {
               )}
             </div>
 
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl"></div>
+              
+              <div className="flex items-center justify-between mb-6 flex-row-reverse relative z-10">
+                <h3 className="font-bold text-lg text-indigo-900 flex items-center gap-2">
+                  <span>وضع الكتالوج الاحترافي (Enterprise)</span>
+                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm"><Type className="w-3 h-3" /></span>
+                </h3>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={catalogueMode} onChange={e => setCatalogueMode(e.target.checked)} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+              
+              {catalogueMode && (
+                <div className="space-y-4 text-right relative z-10 animate-in fade-in slide-in-from-top-4">
+                  <p className="text-sm text-indigo-700/80 mb-4">هذا الوضع يقوم آلياً بدمج اسم علامتك التجارية وتفاصيل المنتج على الصورة المولدة لتصبح جاهزة للنشر فوراً كصفحة كتالوج فاخرة!</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">اسم الماركة (يظهر بخط أنيق)</label>
+                      <input type="text" value={brandName} onChange={e=>setBrandName(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">رمز المنتج (SKU)</label>
+                      <input type="text" value={productCode} onChange={e=>setProductCode(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">المقاسات المتوفرة / العمر</label>
+                    <input type="text" value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
-                <span>(اختياري) رفع صورة العارض للحصول على نتيجة مطابقة 100%</span>
+                <span>(اختياري) وضع العارض المطابق للكتالوج</span>
                 <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm"><UserSquare2 className="w-4 h-4" /></span>
               </h3>
-              <p className="text-right text-sm text-slate-500 mb-5">
-                هل لديك صورة لعارض أو خلفية تعجبك؟ ارفعها هنا وسيقوم النظام بتلبيس المنتج على نفس العارض بنفس الوضعية والخلفية بالضبط!
-              </p>
               
               {!base64ModelImage ? (
                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
@@ -174,16 +274,12 @@ export default function AIStudioPage() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UserSquare2 className="w-8 h-8 text-slate-400 mb-2" />
-                  <p className="font-medium text-slate-600">رفع صورة مرجعية للعارض (اختياري)</p>
+                  <p className="font-medium text-slate-600">ارفع صورة العارض (من الكتالوج المرجعي الخاص بك)</p>
                 </div>
               ) : (
                 <div className="relative rounded-xl overflow-hidden border group">
                   <img src={base64ModelImage} alt="Model Reference" className="w-full h-64 object-contain bg-slate-50" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                    <label className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold cursor-pointer hover:bg-slate-200">
-                      تغيير الصورة
-                      <input type="file" accept="image/*" onChange={handleModelFileSelect} className="hidden" />
-                    </label>
                     <button onClick={() => setBase64ModelImage(null)} className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600">
                       إزالة الصورة
                     </button>
@@ -254,7 +350,6 @@ export default function AIStudioPage() {
                     onChange={(e) => setStylePrompt(e.target.value)}
                     dir="rtl"
                     className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm"
-                    placeholder="اكتب وصف الخلفية والإضاءة هنا..."
                   />
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
@@ -293,12 +388,12 @@ export default function AIStudioPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>جاري التوليد الاحترافي (قد يستغرق 30 ثانية)...</span>
+                  <span>جاري التوليد والتصميم (قد يستغرق 30 ثانية)...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-6 h-6" />
-                  <span>بدء جلسة التصوير!</span>
+                  <span>بدء التصميم وإنشاء صفحة الكتالوج!</span>
                 </>
               )}
             </button>
@@ -328,8 +423,11 @@ export default function AIStudioPage() {
                 <div key={i} className="bg-white p-2 rounded-2xl shadow-sm border group relative">
                   <img src={url} className="w-full h-auto rounded-xl" alt="Generated" />
                   <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-3">
+                    <a href={url} download={`catalogue-${i}.jpg`} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg flex items-center gap-2">
+                      <Download className="w-4 h-4" /> تحميل الكتالوج
+                    </a>
                     <a href={url} target="_blank" className="px-5 py-2.5 bg-white text-slate-900 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg">
-                      تكبير الصورة وتحميلها
+                      تكبير الصورة
                     </a>
                   </div>
                 </div>
