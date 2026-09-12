@@ -91,23 +91,26 @@ FORMAT: You must respond in pure JSON.
         break; // Success!
       } else {
         lastError = data.error?.message || `HTTP ${response.status}`;
-        // If the error is not "not found", stop trying
         if (!lastError.includes("not found")) {
-          break;
+          break; // Stop if it's a real error like bad request, NOT a model missing error
         }
       }
     }
 
-    // If all failed, let's list the available models to debug
+    // Dump available models to the textarea for debugging!
     if (lastError) {
       const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
       const modelsRes = await fetch(modelsUrl);
       if (modelsRes.ok) {
         const modelsData = await modelsRes.json();
-        const availableModels = modelsData.models?.map((m: any) => m.name.replace('models/', '')).filter((m:string) => m.includes('gemini')).join(', ');
-        throw new Error(`Models failed. Available for your key: ${availableModels}`);
+        const availableModels = modelsData.models?.map((m: any) => m.name).join('\n');
+        return NextResponse.json({ 
+          suggestion: `[DEBUG INFO]:\nLastError: ${lastError}\n\nAvailable Models for your Key:\n${availableModels}`, 
+          size: "API Error", 
+          sku: "Check Prompt Box" 
+        });
       }
-      throw new Error(lastError);
+      return NextResponse.json({ suggestion: lastError, size: "API Error", sku: "Check Prompt Box" });
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
@@ -118,12 +121,10 @@ FORMAT: You must respond in pure JSON.
     if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
     if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
 
-    // Sometimes Gemini forgets to output valid JSON if responseMimeType is not forced.
     let parsed;
     try {
       parsed = JSON.parse(cleanJson);
     } catch(e) {
-      // Emergency fallback parsing
       const extractedSize = cleanJson.match(/"extracted_size":\s*"([^"]+)"/)?.[1] || "";
       const extractedSku = cleanJson.match(/"extracted_sku":\s*"([^"]+)"/)?.[1] || "";
       parsed = {
@@ -143,7 +144,7 @@ FORMAT: You must respond in pure JSON.
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
-      sku: error.message ? error.message.substring(0, 45) : "Unknown Error"
+      sku: "Error"
     });
   }
 }
