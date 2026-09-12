@@ -9,8 +9,8 @@ export async function POST(req: Request) {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ 
         suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
-        size: "",
-        sku: ""
+        size: "No API Key",
+        sku: "No API Key"
       });
     }
 
@@ -25,14 +25,14 @@ Instructions:
    - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic) and end with a candid natural lifestyle pose.
    
 2. "extracted_size": 
-   - Look for any text on the image indicating size (e.g., S, M, L, or 2-5).
-   - If you FIND text, extract it. 
-   - If there is NO text, GUESS the appropriate age or size for this child's garment based on its proportions (e.g., "2-5 Years", "6-12 Years", or "Baby 3-6M"). Do NOT leave it empty.
+   - Look closely at ALL text written on the image (top left, tags, etc).
+   - Extract the exact clothing size or age (e.g., "0-12M", "S", "2-5").
+   - If there is NO text, GUESS the appropriate age based on proportions.
 
 3. "extracted_sku": 
-   - Look for any text indicating a product code.
-   - If you FIND text, extract it.
-   - If there is NO text, INVENT a professional-looking random product SKU for it (e.g., "BR-8492", "FW24-105", "KIDS-A77"). Do NOT leave it empty.
+   - Look closely at ALL text written on the image (top left, tags, etc).
+   - Extract the exact product code (e.g., "V6118", "BR-123").
+   - If there is NO text, INVENT a random SKU.
 
 FORMAT: You must respond in pure JSON.
 {
@@ -48,7 +48,7 @@ FORMAT: You must respond in pure JSON.
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o", 
+        model: "gpt-4o-mini", // Downgraded to gpt-4o-mini to avoid tier restrictions
         response_format: { type: "json_object" },
         messages: [
           {
@@ -69,7 +69,9 @@ FORMAT: You must respond in pure JSON.
     });
 
     const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) {
+      throw new Error(data.error.message || "OpenAI API Error");
+    }
     
     const resultText = data.choices?.[0]?.message?.content?.trim();
     if (!resultText) throw new Error("No suggestion returned");
@@ -80,12 +82,12 @@ FORMAT: You must respond in pure JSON.
       size: parsed.extracted_size || "", 
       sku: parsed.extracted_sku || "" 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Analysis error:', error);
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
-      size: "2-5 Years",
-      sku: "BR-" + Math.floor(Math.random() * 9000 + 1000)
+      size: "API Error",
+      sku: error.message ? error.message.substring(0, 20) : "Error"
     });
   }
 }
