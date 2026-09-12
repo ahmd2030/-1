@@ -325,12 +325,14 @@ export default function AIStudioPage() {
 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
-                  <div className="grid grid-cols-2 gap-3" dir="rtl">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" dir="rtl">
                     {[
-                      { id: 'toddler girl', label: 'بنت صغيرة (2-5 سنوات)' },
-                      { id: 'toddler boy', label: 'ولد صغير (2-5 سنوات)' },
-                      { id: 'young girl', label: 'بنت (6-12 سنة)' },
-                      { id: 'young boy', label: 'ولد (6-12 سنة)' },
+                      { id: 'toddler girl', label: 'بنت صغيرة (2-5)' },
+                      { id: 'toddler boy', label: 'ولد صغير (2-5)' },
+                      { id: 'young girl', label: 'بنت (6-12)' },
+                      { id: 'young boy', label: 'ولد (6-12)' },
+                      { id: 'two girls', label: 'بنتان معاً 👯‍♀️' },
+                      { id: 'two boys', label: 'ولدان معاً 👯‍♂️' },
                       { id: 'woman', label: 'امرأة' },
                       { id: 'man', label: 'رجل' }
                     ].map(type => (
