@@ -27,18 +27,12 @@ export default function ChatDirectorPage() {
   }, [messages]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      return data.url ?? null;
-    } catch {
-      return null;
-    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string); // Returns 'data:image/...;base64,...'
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

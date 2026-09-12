@@ -27,13 +27,13 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Manually convert to CoreMessage[] since useChat sends content as an array for images
-  // Google's Gemini OpenAI endpoint does not support external HTTP URLs, so we must fetch and convert to base64
   const coreMessages = await Promise.all(messages.map(async (m: any) => {
     if (Array.isArray(m.content)) {
       const content = await Promise.all(m.content.map(async (part: any) => {
         if (part.type === 'text') return { type: 'text', text: part.text };
         if (part.type === 'image_url') {
           let url = part.image_url.url;
+          // If it's already base64, just use it.
           if (url.startsWith('http')) {
             try {
               const res = await fetch(url);
@@ -53,6 +53,16 @@ export async function POST(req: Request) {
     }
     return m;
   }));
+
+  // Collect all base64 images from the user's history
+  const allUserImages: string[] = [];
+  coreMessages.forEach(m => {
+    if (m.role === 'user' && Array.isArray(m.content)) {
+      m.content.forEach((part: any) => {
+        if (part.type === 'image') allUserImages.push(part.image);
+      });
+    }
+  });
 
   const google = createOpenAI({
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
@@ -93,9 +103,9 @@ export async function POST(req: Request) {
           },
         }),
         generateFashionImages: tool({
-          description: 'Trigger professional AI image generation after agreeing with the user on all details.',
+          description: 'Trigger professional AI image generation after agreeing with the user on all details. Always use the most recently uploaded image.',
           parameters: z.object({
-            imageUrls: z.array(z.string()),
+            imageIndex: z.number().optional().describe("0 for the very first image uploaded, 1 for the second, etc. If omitted, uses the most recently uploaded image."),
             brandName: z.string().optional(),
             promoText: z.string().optional(),
             modelType: z.enum(['boy', 'girl', 'man', 'woman']),
@@ -105,9 +115,9 @@ export async function POST(req: Request) {
             const { FashnProvider } = await import('@/lib/ai/fashn');
             const provider = new FashnProvider();
             
-            // Assume the first image is the product, and second (if exists) is inspiration
-            const garmentImage = args.imageUrls[0];
-            const modelImage = args.imageUrls[1];
+            // Get image from the accumulated history
+            const targetIndex = args.imageIndex !== undefined ? args.imageIndex : allUserImages.length - 1;
+            const garmentImage = allUserImages[targetIndex];
             
             if (!garmentImage) {
               return { error: 'لا يوجد صورة منتج. يرجى رفع صورة المنتج أولاً.' };
@@ -115,16 +125,15 @@ export async function POST(req: Request) {
 
             try {
               const result = await provider.generate({
-                garmentImage,
-                modelImage,
-                category: 'tops', // default category
+                garmentImage, // Pass base64 directly to FASHN
+                category: 'tops',
                 modelType: args.modelType,
                 style: args.stylePrompt,
               });
 
               return {
                 status: 'success',
-                imageUrl: result.imageUrl,
+                imageUrl: result.imageUrl, // FASHN returns a URL
                 brandName: args.brandName,
                 promoText: args.promoText,
                 message: 'تم توليد الصورة بنجاح!'
