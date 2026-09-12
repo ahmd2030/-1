@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Manually convert to CoreMessage[] since useChat sends content as an array for images
+  // Google's Gemini OpenAI endpoint does not support external HTTP URLs, so we must fetch and convert to base64
   const coreMessages = await Promise.all(messages.map(async (m: any) => {
     if (Array.isArray(m.content)) {
       const content = await Promise.all(m.content.map(async (part: any) => {
@@ -69,13 +70,14 @@ export async function POST(req: Request) {
     }
   });
 
-  const google = createGoogleGenerativeAI({
+  const google = createOpenAI({
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     apiKey,
   });
 
   try {
     const result = await streamText({
-      model: google('gemini-1.5-pro') as any,
+      model: google('gemini-1.5-flash'),
       system: SYSTEM,
       messages: coreMessages,
       tools: {
