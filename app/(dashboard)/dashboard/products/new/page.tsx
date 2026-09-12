@@ -9,7 +9,7 @@ export default function AIStudioPage() {
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [modelType, setModelType] = useState<string>("girl");
   const [category, setCategory] = useState<string>("tops");
-  const [stylePrompt, setStylePrompt] = useState<string>("صورة احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
+  const [stylePrompt, setStylePrompt] = useState<string>("صورة كتالوج احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,25 +197,25 @@ export default function AIStudioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل التصوير والخلفية (الوصف التفصيلي يعطي نتائج أفضل)</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل الكتالوج الاحترافي</label>
                   <textarea
                     value={stylePrompt}
                     onChange={(e) => setStylePrompt(e.target.value)}
                     dir="rtl"
-                    className="w-full h-24 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
-                    placeholder="مثال: استوديو تصوير، خلفية بيضاء نقية، إضاءة سينمائية..."
+                    className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm"
+                    placeholder="اكتب وصف الخلفية والإضاءة هنا..."
                   />
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
-                      "صورة واقعية عالية الدقة 8K، إضاءة استوديو تصوير احترافية 📸",
-                      "خلفية ثلجية شتوية ❄️",
-                      "طبيعة وورود ربيعية 🌸",
-                      "خلفية بيضاء نقية للتجارة الإلكترونية 🛒"
+                      "صورة كتالوج فاخرة، استوديو بألوان بيج دافئة، أرضية خشبية، شجرة زيتون في الخلفية، إضاءة شمس ناعمة من نافذة مع ظلال 🌿",
+                      "خلفية استوديو بيضاء نقية للتجارة الإلكترونية، إضاءة Softbox ناعمة ومتساوية، جودة 8K 📸",
+                      "تصوير خارجي طبيعي، حديقة ربيعية، إضاءة شمس ذهبية (Golden Hour) 🌅",
+                      "استوديو عصري بسيط، خلفية رمادية فاتحة، ظلال درامية خفيفة 🎨"
                     ].map(preset => (
                       <button
                         key={preset}
                         onClick={() => setStylePrompt(preset)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg transition-colors border"
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border text-right max-w-full leading-relaxed"
                       >
                         {preset}
                       </button>
