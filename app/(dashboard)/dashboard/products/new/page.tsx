@@ -48,7 +48,7 @@ const AsyncImageGenerator = ({ result }: { result: any }) => {
 export default function AIDirectorPage() {
   const { messages, input, handleInputChange, append, setInput, isLoading, error } = useChat({
     api: "/api/chat",
-    maxSteps: 5,
+    maxToolRoundtrips: 5,
   });
 
   const [attachments, setAttachments] = useState<File[]>([]);
