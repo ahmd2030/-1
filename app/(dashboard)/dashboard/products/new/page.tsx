@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, CreditCard } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
@@ -15,6 +15,7 @@ export default function AIStudioPage() {
   const [category, setCategory] = useState<string>("tops");
   
   const [stylePrompt, setStylePrompt] = useState<string>("Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose.");
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   
   const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
   const [brandName, setBrandName] = useState<string>("Baby Rose");
@@ -42,10 +43,35 @@ export default function AIStudioPage() {
     setFile(selectedFile);
     
     const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) setBase64Image(event.target.result as string);
+    reader.onload = async (event) => {
+      if (event.target?.result) {
+        const b64 = event.target.result as string;
+        setBase64Image(b64);
+        analyzeGarment(b64);
+      }
     };
     reader.readAsDataURL(selectedFile);
+  };
+  
+  const analyzeGarment = async (b64: string) => {
+    setIsAnalyzing(true);
+    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاقتراح أفضل ديكور وخلفية تناسبها...");
+    try {
+      const res = await fetch('/api/analyze-garment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ garmentImage: b64 })
+      });
+      const data = await res.json();
+      if (data.suggestion) {
+        setStylePrompt(data.suggestion);
+        toast.success("تم تحليل القطعة واقتراح خلفية مناسبة تلقائياً!");
+      }
+    } catch(e) {
+      setStylePrompt("Luxury cozy indoor living room, wooden floor, soft window sunlight, decorative plants. Natural, relaxed, candid dynamic pose.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleModelFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,14 +377,39 @@ export default function AIStudioPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">ستايل الخلفية والإضاءة (بالإنجليزية لأفضل نتيجة)</label>
-                  <textarea
-                    value={stylePrompt}
-                    onChange={(e) => setStylePrompt(e.target.value)}
-                    dir="ltr"
-                    className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm leading-relaxed"
-                  />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-3 flex-row-reverse">
+                    <label className="block text-sm font-bold text-slate-700">ستايل الخلفية والإضاءة (باللغة الإنجليزية)</label>
+                    {base64Image && (
+                      <button 
+                        onClick={() => analyzeGarment(base64Image)}
+                        disabled={isAnalyzing}
+                        className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                        <span>تحليل القطعة واقتراح ديكور</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <textarea
+                      value={stylePrompt}
+                      onChange={(e) => setStylePrompt(e.target.value)}
+                      dir="ltr"
+                      disabled={isAnalyzing}
+                      className={`w-full h-32 p-4 rounded-xl border focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm leading-relaxed ${
+                        isAnalyzing ? 'bg-indigo-50/50 border-indigo-200 text-indigo-400' : 'border-slate-300'
+                      }`}
+                    />
+                    {isAnalyzing && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-xl backdrop-blur-[1px]">
+                        <Loader2 className="w-6 h-6 text-indigo-600 animate-spin mb-2" />
+                        <span className="text-sm font-bold text-indigo-800">جاري تحليل القطعة وابتكار الخلفية...</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
                     {[
                       {
@@ -395,9 +446,9 @@ export default function AIStudioPage() {
 
             <button
               onClick={handleGenerate}
-              disabled={loading || !base64Image}
+              disabled={loading || !base64Image || isAnalyzing}
               className={`w-full py-5 rounded-2xl font-bold text-lg text-white shadow-xl flex items-center justify-center gap-3 transition-all ${
-                loading || !base64Image 
+                loading || !base64Image || isAnalyzing
                   ? 'bg-slate-400 cursor-not-allowed' 
                   : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 hover:scale-[1.02]'
               }`}
