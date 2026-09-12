@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -67,6 +67,10 @@ export async function POST(req: Request) {
         if (part.type === 'image') allUserImages.push(part.image);
       });
     }
+  });
+
+  const google = createGoogleGenerativeAI({
+    apiKey,
   });
 
   try {
