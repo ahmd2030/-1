@@ -1,5 +1,4 @@
 ﻿import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
 
@@ -16,16 +15,6 @@ export async function POST(req: Request) {
         sku: "Add GEMINI_API_KEY"
       });
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.9
-      }
-    });
 
     const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise data-extraction engine.
 Analyze the provided clothing image carefully.
@@ -64,20 +53,45 @@ FORMAT: You must respond in pure JSON.
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
-    const imageParts = [
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType
-        }
-      }
-    ];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    const result = await model.generateContent([systemPrompt, ...imageParts]);
-    const responseText = result.response.text();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: systemPrompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.9,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    const data = await response.json();
     
+    if (!response.ok) {
+      throw new Error(data.error?.message || `HTTP Error ${response.status}`);
+    }
+
+    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!resultText) throw new Error("No suggestion returned");
+
     // Clean up just in case
-    let cleanJson = responseText.trim();
+    let cleanJson = resultText.trim();
     if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
     if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
 
