@@ -1,12 +1,16 @@
 ﻿"use client";
 
 import React, { useState, useEffect } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, CheckCircle2 } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [base64Image, setBase64Image] = useState<string | null>(null);
+  
+  const [modelFile, setModelFile] = useState<File | null>(null);
+  const [base64ModelImage, setBase64ModelImage] = useState<string | null>(null);
+
   const [modelType, setModelType] = useState<string>("girl");
   const [category, setCategory] = useState<string>("tops");
   const [stylePrompt, setStylePrompt] = useState<string>("صورة كتالوج احترافية، إضاءة استوديو ناعمة، خلفية أنيقة ومناسبة للأطفال");
@@ -31,9 +35,19 @@ export default function AIStudioPage() {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      if (event.target?.result) {
-        setBase64Image(event.target.result as string);
-      }
+      if (event.target?.result) setBase64Image(event.target.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleModelFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selectedFile = e.target.files[0];
+    setModelFile(selectedFile);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) setBase64ModelImage(event.target.result as string);
     };
     reader.readAsDataURL(selectedFile);
   };
@@ -54,6 +68,7 @@ export default function AIStudioPage() {
         body: JSON.stringify({
           status: 'ready_to_generate',
           garmentImage: base64Image,
+          modelImage: base64ModelImage,
           modelType,
           category,
           style: stylePrompt,
@@ -143,7 +158,43 @@ export default function AIStudioPage() {
 
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
-                <span>إعدادات العارض والخلفية</span>
+                <span>(اختياري) رفع صورة العارض للحصول على نتيجة مطابقة 100%</span>
+                <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm"><UserSquare2 className="w-4 h-4" /></span>
+              </h3>
+              <p className="text-right text-sm text-slate-500 mb-5">
+                هل لديك صورة لعارض أو خلفية تعجبك؟ ارفعها هنا وسيقوم النظام بتلبيس المنتج على نفس العارض بنفس الوضعية والخلفية بالضبط!
+              </p>
+              
+              {!base64ModelImage ? (
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleModelFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <UserSquare2 className="w-8 h-8 text-slate-400 mb-2" />
+                  <p className="font-medium text-slate-600">رفع صورة مرجعية للعارض (اختياري)</p>
+                </div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border group">
+                  <img src={base64ModelImage} alt="Model Reference" className="w-full h-64 object-contain bg-slate-50" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                    <label className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold cursor-pointer hover:bg-slate-200">
+                      تغيير الصورة
+                      <input type="file" accept="image/*" onChange={handleModelFileSelect} className="hidden" />
+                    </label>
+                    <button onClick={() => setBase64ModelImage(null)} className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600">
+                      إزالة الصورة
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={`bg-white p-6 rounded-2xl border shadow-sm transition-opacity ${base64ModelImage ? 'opacity-50 pointer-events-none' : ''}`}>
+              <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
+                <span>إعدادات التوليد التلقائي (في حال لم يتم رفع عارض)</span>
                 <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">2</span>
               </h3>
               
@@ -205,22 +256,6 @@ export default function AIStudioPage() {
                     className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none text-sm"
                     placeholder="اكتب وصف الخلفية والإضاءة هنا..."
                   />
-                  <div className="flex flex-row-reverse flex-wrap gap-2 mt-3">
-                    {[
-                      "صورة كتالوج فاخرة، استوديو بألوان بيج دافئة، أرضية خشبية، شجرة زيتون في الخلفية، إضاءة شمس ناعمة من نافذة مع ظلال 🌿",
-                      "خلفية استوديو بيضاء نقية للتجارة الإلكترونية، إضاءة Softbox ناعمة ومتساوية، جودة 8K 📸",
-                      "تصوير خارجي طبيعي، حديقة ربيعية، إضاءة شمس ذهبية (Golden Hour) 🌅",
-                      "استوديو عصري بسيط، خلفية رمادية فاتحة، ظلال درامية خفيفة 🎨"
-                    ].map(preset => (
-                      <button
-                        key={preset}
-                        onClick={() => setStylePrompt(preset)}
-                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border text-right max-w-full leading-relaxed"
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
