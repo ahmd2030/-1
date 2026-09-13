@@ -361,7 +361,11 @@ export default function AIStudioPage() {
           const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
           const newItem = { id: Math.random().toString(), cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc };
           currentGallery = [newItem, ...currentGallery];
-          localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery));
+          try {
+            localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery));
+          } catch(e) {
+            console.warn("Storage full, kept in RAM");
+          }
           setGalleryImages([...currentGallery]); // trigger re-render
         }
       } catch (err) {
@@ -416,7 +420,11 @@ export default function AIStudioPage() {
         const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
         const newItem = { id: Math.random().toString(), cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc };
         const updated = [newItem, ...existing];
-        localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
+        try {
+          localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
+        } catch(e) {
+          console.warn("Storage full, kept in RAM");
+        }
         setGalleryImages(updated);
         
         toast.success("تم التوليد والتصميم بنجاح!");
