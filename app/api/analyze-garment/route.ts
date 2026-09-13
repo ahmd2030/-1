@@ -25,7 +25,7 @@ Instructions:
    - Invent a breathtaking, rich, immersive background that logically matches the clothing.
    - STRONGLY PREFER high-end indoor locations (luxury fashion studios, aesthetic children's bedrooms, elegant living rooms, minimalist backdrops) unless the garment explicitly demands outdoors (like swimwear or heavy winter coats).
    - Describe the architecture, decor, and lighting beautifully and simply (e.g., "A luxury aesthetic nursery with a wooden crib and soft morning sunlight").
-   - DO NOT use complex camera jargon or over-engineered prompt words. Keep it focused on the location.
+   - DO NOT use complex camera jargon. Keep it focused on the location.
    - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting, kneeling, or crawling.
    
 2. "extracted_size": 
@@ -69,7 +69,8 @@ FORMAT: You must respond in pure JSON.
         }
       ],
       generationConfig: {
-        temperature: 0.9
+        temperature: 0.2, // Lower temperature to ensure strict JSON and data accuracy
+        responseMimeType: "application/json" // Force Gemini to return perfect JSON
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -120,21 +121,16 @@ FORMAT: You must respond in pure JSON.
       throw new Error("No suggestion returned");
     }
 
-    let cleanJson = resultText.trim();
-    if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
-    if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
-
     let parsed;
     try {
-      parsed = JSON.parse(cleanJson);
+      parsed = JSON.parse(resultText);
     } catch(e) {
-      const extractedSize = cleanJson.match(/"extracted_size":\s*"([^"]+)"/)?.[1] || "";
-      const extractedSku = cleanJson.match(/"extracted_sku":\s*"([^"]+)"/)?.[1] || "";
-      parsed = {
-        prompt: cleanJson,
-        extracted_size: extractedSize,
-        extracted_sku: extractedSku
-      };
+      console.error("JSON Parse Error:", resultText);
+      return NextResponse.json({ 
+        suggestion: resultText, 
+        size: "Format Error", 
+        sku: "Format Error" 
+      });
     }
 
     return NextResponse.json({ 
