@@ -43,7 +43,6 @@ FORMAT: You must respond in pure JSON.
   "extracted_sku": "..."
 }`;
 
-    // Extract base64 and mime type
     let base64Data = garmentImage;
     let mimeType = 'image/jpeg';
     
@@ -72,8 +71,8 @@ FORMAT: You must respond in pure JSON.
       }
     };
 
-    // Try multiple models
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+    // Use the latest modern aliases from the user's available models list
+    const modelsToTry = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
     let data: any = null;
     let lastError = "";
 
@@ -88,35 +87,22 @@ FORMAT: You must respond in pure JSON.
       
       if (response.ok) {
         lastError = "";
-        break; // Success!
+        break; 
       } else {
         lastError = data.error?.message || `HTTP ${response.status}`;
         if (!lastError.includes("not found")) {
-          break; // Stop if it's a real error like bad request, NOT a model missing error
+          break; 
         }
       }
     }
 
-    // Dump available models to the textarea for debugging!
     if (lastError) {
-      const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-      const modelsRes = await fetch(modelsUrl);
-      if (modelsRes.ok) {
-        const modelsData = await modelsRes.json();
-        const availableModels = modelsData.models?.map((m: any) => m.name).join('\n');
-        return NextResponse.json({ 
-          suggestion: `[DEBUG INFO]:\nLastError: ${lastError}\n\nAvailable Models for your Key:\n${availableModels}`, 
-          size: "API Error", 
-          sku: "Check Prompt Box" 
-        });
-      }
-      return NextResponse.json({ suggestion: lastError, size: "API Error", sku: "Check Prompt Box" });
+      return NextResponse.json({ suggestion: lastError, size: "API Error", sku: "Model Error" });
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!resultText) throw new Error("No suggestion returned");
 
-    // Clean up markdown JSON block if present
     let cleanJson = resultText.trim();
     if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
     if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
