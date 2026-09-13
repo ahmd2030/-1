@@ -23,8 +23,9 @@ Instructions:
 1. "prompt": 
    - Determine the SEASON and VIBE of the clothing.
    - Invent a breathtaking, rich, immersive background that logically matches the clothing.
-   - STRONGLY PREFER high-end indoor locations (luxury fashion studios, aesthetic children's bedrooms, elegant living rooms, minimalist backdrops) unless the garment explicitly demands outdoors (like swimwear or heavy winter coats).
-   - Describe the architecture, decor, and lighting beautifully and simply (e.g., "A luxury aesthetic nursery with a wooden crib and soft morning sunlight").
+   - STRONGLY PREFER beautifully decorated, high-end indoor locations (luxury children's bedrooms with aesthetic decor, elegant living rooms with rich furniture). 
+   - DO NOT suggest plain, empty, or minimalist backgrounds. The background must be rich and detailed.
+   - Describe the architecture, decor, and lighting beautifully and simply (e.g., "A luxury aesthetic nursery with a wooden crib, vintage rug, and soft morning sunlight").
    - DO NOT use complex camera jargon. Keep it focused on the location.
    - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting, kneeling, or crawling.
    
@@ -69,8 +70,8 @@ FORMAT: You must respond in pure JSON.
         }
       ],
       generationConfig: {
-        temperature: 0.2, // Lower temperature to ensure strict JSON and data accuracy
-        responseMimeType: "application/json" // Force Gemini to return perfect JSON
+        temperature: 0.2, 
+        responseMimeType: "application/json" 
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
