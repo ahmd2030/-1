@@ -26,10 +26,9 @@ export class FashnProvider implements AIProvider {
         subjectPrompt = `two girl models standing side by side, one toddler girl and one young girl (siblings), BOTH wearing the exact same identical`;
       }
 
-      const promptText = `RAW photo, unretouched candid photograph, shot on 35mm lens, Kodak Portra 400. A highly detailed, hyper-realistic FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
+      const promptText = `A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
       ${options.style || ''}. 
-      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT on their feet. The model MUST BE WEARING STYLISH SHOES (sneakers, boots, sandals, etc) that match the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, or crawling. Full body must be clearly visible from head to shoes. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, or hangers. 
-      PHOTOREALISM RULES: Extremely sharp focus on fabric texture. Natural skin texture, subtle skin pores, slight film grain, realistic lighting, NOT plastic or over-smoothed. Masterpiece, 8k.`;
+      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT on their feet. The model MUST BE WEARING STYLISH SHOES. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, or crawling. Full body must be clearly visible from head to shoes. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, or hangers. Photorealistic, ultra detailed 8k.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
