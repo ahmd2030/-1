@@ -521,11 +521,12 @@ export default function AIStudioPage() {
               {!base64Image ? (
                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                   <Upload className="w-10 h-10 text-slate-400 mb-3" />
                   <p className="font-medium text-slate-600">اضغط هنا لرفع صورة المنتج</p>
                 </div>
