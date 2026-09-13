@@ -827,16 +827,25 @@ export default function AIStudioPage() {
                 <p className="text-sm font-medium">لا توجد صور مولدة بعد</p>
               </div>
             ) : (
-              galleryImages.map((url, i) => (
-                <div key={i} className="bg-white p-2 rounded-2xl shadow-sm border group relative">
-                  <img src={url} className="w-full h-auto rounded-xl" alt="Generated" />
-                  <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-3">
-                    <a href={url} download={`catalogue-${i}.jpg`} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg flex items-center gap-2">
-                      <Download className="w-4 h-4" /> تحميل الصورة
-                    </a>
+              galleryImages.map((item, i) => {
+                const isLegacy = typeof item === 'string';
+                const pUrl = isLegacy ? item : item.previewUrl;
+                return (
+                  <div key={i} className="bg-white p-2 rounded-2xl shadow-sm border group relative">
+                    <img src={pUrl} className="w-full h-auto rounded-xl" alt="Generated" />
+                    <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-3">
+                      <a href={pUrl} download={`catalogue-${i}.jpg`} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg flex items-center gap-2">
+                        <Download className="w-4 h-4" /> تحميل
+                      </a>
+                      {!isLegacy && (
+                        <button onClick={() => setEditingItem(item)} className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2">
+                          <Edit3 className="w-4 h-4" /> تعديل النصوص
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
