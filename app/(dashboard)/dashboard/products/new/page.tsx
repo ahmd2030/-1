@@ -9,6 +9,7 @@ import { toast } from "sonner";
 export default function AIStudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [queue, setQueue] = useState<File[]>([]);
+  const [queueStatus, setQueueStatus] = useState<{status: string, error?: string}[]>([]);
   const [processingIndex, setProcessingIndex] = useState<number>(-1);
   const [isBulkMode, setIsBulkMode] = useState<boolean>(false);
 
@@ -92,6 +93,7 @@ export default function AIStudioPage() {
     if (e.target.files.length > 1) {
       setIsBulkMode(true);
       setQueue(Array.from(e.target.files));
+        setQueueStatus(Array.from(e.target.files).map(() => ({ status: 'waiting' })));
       setFile(e.target.files[0]);
       
       const reader = new FileReader();
@@ -307,7 +309,8 @@ export default function AIStudioPage() {
     
     for (let i = 0; i < queue.length; i++) {
       setProcessingIndex(i);
-      try {
+        setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'analyzing' } : s));
+        try {
         const currentFile = queue[i];
         
         // 1. Read file to Base64
@@ -342,7 +345,8 @@ export default function AIStudioPage() {
           ? `Model is facing backwards, walking away from the camera, showing the BACK of the garment. ${genPrompt}`
           : genPrompt;
           
-        // 3. Generate Image
+        setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'generating' } : s));
+          // 3. Generate Image
         const genRes = await fetch('/api/generate/base64', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -367,10 +371,14 @@ export default function AIStudioPage() {
             console.warn("Storage full, kept in RAM");
           }
           setGalleryImages([...currentGallery]); // trigger re-render
-        }
+            setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'done' } : s));
+          } else if (genData.error) {
+            throw new Error(genData.error);
+          }
       } catch (err) {
         console.error("Error processing item", i, err);
-      }
+          setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'error', error: err.message || "فشلت العملية" } : s));
+        }
     }
     
     setLoading(false);
@@ -767,8 +775,27 @@ export default function AIStudioPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-right font-medium text-sm">
+            
+            {isBulkMode && queue.length > 0 && (
+              <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6 space-y-2 max-h-60 overflow-y-auto" dir="rtl">
+                 <h4 className="font-bold text-slate-800 mb-3">طابور التوليد ({queue.length} صور)</h4>
+                 {queue.map((file, i) => (
+                    <div key={i} className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-lg border border-slate-100">
+                       <span className="truncate w-40 font-medium text-slate-600" dir="ltr">{file.name}</span>
+                       <span className="text-left">
+                         {(!queueStatus[i] || queueStatus[i].status === 'waiting') && <span className="text-slate-400 font-bold">في الانتظار ⏳</span>}
+                         {queueStatus[i]?.status === 'analyzing' && <span className="text-blue-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> يقرأ المقاس...</span>}
+                         {queueStatus[i]?.status === 'generating' && <span className="text-indigo-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> يرسم الموديل...</span>}
+                         {queueStatus[i]?.status === 'done' && <span className="text-emerald-500 font-bold">اكتملت ✅</span>}
+                         {queueStatus[i]?.status === 'error' && <span className="text-red-500 font-bold" title={queueStatus[i]?.error}>فشلت ❌</span>}
+                       </span>
+                    </div>
+                 ))}
+              </div>
+            )}
+
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-right font-medium text-sm">
                 ❌ {error}
               </div>
             )}

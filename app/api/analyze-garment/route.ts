@@ -22,11 +22,10 @@ Analyze the provided clothing image carefully.
 
 Instructions:
 1. "prompt": 
-   - Determine the SEASON and VIBE of the clothing.
-   - Invent a breathtaking, rich, immersive background that logically matches the clothing.
-   - STRONGLY PREFER beautifully decorated, high-end indoor locations (luxury children's bedrooms with aesthetic decor, elegant living rooms with rich furniture). 
-   - DO NOT suggest plain, empty, or minimalist backgrounds. The background must be rich and detailed.
-   - Describe the architecture, decor, and lighting beautifully and simply (e.g., "A luxury aesthetic nursery with a wooden crib, vintage rug, and soft morning sunlight").
+   - CRITICAL: IGNORE the original background in the image (wood, carpets, hangers). Focus 100% on the CLOTHING item itself.
+   - Act as a master color-theory expert. Analyze the color and style of the clothing, and invent a background setting with CONTRASTING or COMPLEMENTARY colors to make the clothing pop. (e.g., If the clothing is dark/black, design a bright beige/white room. If the clothing is plain, use rich colorful decor).
+   - Invent a breathtaking, rich, immersive high-end indoor background (luxury nurseries, aesthetic bedrooms) that highlights the beauty of the model and outfit.
+   - Describe the decor, props, and lighting beautifully and simply. DO NOT suggest plain backgrounds.
    - DO NOT use complex camera jargon. Keep it focused on the location.
    - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting, kneeling, or crawling.
    
