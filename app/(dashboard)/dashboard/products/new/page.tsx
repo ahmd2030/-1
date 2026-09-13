@@ -81,18 +81,34 @@ export default function AIStudioPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
     
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      if (event.target?.result) {
-        const b64 = event.target.result as string;
-        setBase64Image(b64);
-        analyzeGarment(b64);
-      }
-    };
-    reader.readAsDataURL(selectedFile);
+    if (e.target.files.length > 1) {
+      setIsBulkMode(true);
+      setQueue(Array.from(e.target.files));
+      setFile(e.target.files[0]);
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) setBase64Image(event.target.result as string);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+      toast.success(`تم إضافة ${e.target.files.length} صور للطابور. اضغط زر التوليد الجماعي للبدء!`);
+    } else {
+      setIsBulkMode(false);
+      setQueue([]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        if (event.target?.result) {
+          const b64 = event.target.result as string;
+          setBase64Image(b64);
+          analyzeGarment(b64);
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+    }
   };
   
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -511,7 +527,7 @@ export default function AIStudioPage() {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <label className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold cursor-pointer hover:bg-slate-200">
                         تغيير الصورة
-                        <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                        <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
                       </label>
                     </div>
                   </div>
