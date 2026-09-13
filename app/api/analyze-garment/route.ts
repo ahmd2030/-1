@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     
     if (!apiKey) {
       return NextResponse.json({ 
-        suggestion: "A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.",
+        suggestion: "A beautiful luxury indoor studio setup, elegant decor, professional studio lighting. Natural candid walking pose, smiling.",
         size: "No Gemini Key",
         sku: "Add GEMINI_API_KEY"
       });
@@ -21,10 +21,10 @@ Analyze the provided clothing image carefully.
 
 Instructions:
 1. "prompt": 
-   - Determine the SEASON and VIBE of the clothing.
-   - Invent a breathtaking, rich, immersive, real-world photography background that logically matches the clothing.
-   - Ensure massive CREATIVE VARIETY. Do not repeat generic backgrounds.
-   - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic).
+   - Determine the SEASON, VIBE, and PURPOSE of the clothing.
+   - IMPORTANT LOCATION RULE: By default, ALWAYS prioritize high-end INDOOR sets, luxury fashion studios, aesthetic children's bedrooms, elegant living rooms, or minimalist studio backgrounds. 
+   - ONLY use outdoor locations (like beaches, sea, sand, streets, or snow) RARELY, and ONLY IF the outfit is 100% strictly designed for that exact environment (e.g. swimwear for beach, heavy snow coat for snow).
+   - Describe this environment with professional lighting terms (soft studio lighting, cinematic window light, 8k, photorealistic).
    - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." Do NOT suggest sitting or kneeling.
    
 2. "extracted_size": 
@@ -97,23 +97,21 @@ FORMAT: You must respond in pure JSON.
       } else {
         lastError = data.error?.message || `HTTP ${response.status}`;
         if (!lastError.includes("not found")) {
-          break; // Stop on real errors like Quota or Safety
+          break;
         }
       }
     }
 
     if (lastError) {
-      // Put the exact error in the SKU box so we can see it
       return NextResponse.json({ 
         suggestion: lastError, 
         size: "Error", 
-        sku: lastError.substring(0, 40) // Put partial error in SKU box
+        sku: lastError.substring(0, 40)
       });
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!resultText) {
-      // It might be blocked by prompt safety
       const finishReason = data.candidates?.[0]?.finishReason;
       if (finishReason) {
          return NextResponse.json({ suggestion: `Blocked by safety: ${finishReason}`, size: "Error", sku: finishReason });
@@ -146,7 +144,7 @@ FORMAT: You must respond in pure JSON.
   } catch (error: any) {
     console.error('Analysis error:', error);
     return NextResponse.json({ 
-      suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
+      suggestion: "A stunning natural lifestyle shot in a luxury indoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
       sku: error.message ? error.message.substring(0, 40) : "Error"
     });
