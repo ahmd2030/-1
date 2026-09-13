@@ -111,19 +111,21 @@ export default function AIStudioPage() {
       const optimizedImage = await resizeImageForAnalysis(b64);
       
       const res = await fetch('/api/analyze-garment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ garmentImage: optimizedImage, generateMarketingDesc })
-      });
-      
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch(err) {
-        console.error("Server returned non-JSON:", text);
-        throw new Error("فشل الخادم في الرد. قد تكون الصورة كبيرة جداً أو هناك ضغط على السيرفر.");
-      }
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ garmentImage: optimizedImage, generateMarketingDesc })
+        });
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch(err) {
+          throw new Error("فشل الاتصال بمحلل الصور.");
+        }
+        
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "حدث خطأ أثناء تحليل الصورة.");
+        }
 
       if (data.suggestion) {
         setStylePrompt(data.suggestion);

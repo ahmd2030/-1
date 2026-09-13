@@ -11,8 +11,8 @@ export async function POST(req: Request) {
     if (!apiKey) {
       return NextResponse.json({ 
         suggestion: "A beautiful luxury indoor studio setup, elegant decor, professional studio lighting. Natural candid walking pose, smiling.",
-        size: "No Gemini Key",
-        sku: "Add GEMINI_API_KEY",
+        size: "",
+        sku: "",
         marketing_desc: ""
       });
     }
@@ -114,21 +114,16 @@ FORMAT: You must respond in pure JSON.
     }
 
     if (lastError) {
-      return NextResponse.json({ 
-        suggestion: lastError, 
-        size: "Error", 
-        sku: lastError.substring(0, 40),
-        marketing_desc: ""
-      });
+      return NextResponse.json({ error: lastError }, { status: 503 });
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!resultText) {
       const finishReason = data.candidates?.[0]?.finishReason;
       if (finishReason) {
-         return NextResponse.json({ suggestion: `Blocked by safety: ${finishReason}`, size: "Error", sku: finishReason, marketing_desc: "" });
+         return NextResponse.json({ error: `Blocked by safety: ${finishReason}` }, { status: 400 });
       }
-      throw new Error("No suggestion returned");
+      return NextResponse.json({ error: "No suggestion returned from Gemini" }, { status: 500 });
     }
 
     let parsed;
@@ -136,27 +131,17 @@ FORMAT: You must respond in pure JSON.
       parsed = JSON.parse(resultText);
     } catch(e) {
       console.error("JSON Parse Error:", resultText);
-      return NextResponse.json({ 
-        suggestion: resultText, 
-        size: "Format Error", 
-        sku: "Format Error",
-        marketing_desc: ""
-      });
+      return NextResponse.json({ error: "Format Error from Gemini" }, { status: 500 });
     }
 
     return NextResponse.json({ 
-      suggestion: parsed.prompt || "", 
+      suggestion: parsed.prompt || "A beautiful luxury indoor studio setup, elegant decor, professional studio lighting. Natural candid walking pose, smiling.", 
       size: parsed.extracted_size || "", 
       sku: parsed.extracted_sku || "",
       marketing_desc: parsed.marketing_desc || ""
     });
   } catch (error: any) {
     console.error('Analysis error:', error);
-    return NextResponse.json({ 
-      suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
-      size: "Gemini Error",
-      sku: error.message ? error.message.substring(0, 40) : "Error",
-      marketing_desc: ""
-    });
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
