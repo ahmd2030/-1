@@ -8,6 +8,10 @@ import { toast } from "sonner";
 
 export default function AIStudioPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [queue, setQueue] = useState<File[]>([]);
+  const [processingIndex, setProcessingIndex] = useState<number>(-1);
+  const [isBulkMode, setIsBulkMode] = useState<boolean>(false);
+
   const [base64Image, setBase64Image] = useState<string | null>(null);
   
   const [modelFile, setModelFile] = useState<File | null>(null);
@@ -155,7 +159,7 @@ export default function AIStudioPage() {
     reader.readAsDataURL(selectedFile);
   };
 
-  const applyCatalogueOverlay = (imageUrl: string): Promise<string> => {
+  const applyCatalogueOverlay = (imageUrl: string, customSizes?: string, customCode?: string, customDesc?: string): Promise<string> => {
     return new Promise((resolve) => {
       if (!catalogueMode || !canvasRef.current) {
         resolve(imageUrl);
@@ -181,27 +185,27 @@ export default function AIStudioPage() {
           ctx.textAlign = "right";
           ctx.textBaseline = "top";
           ctx.shadowBlur = 0; 
-          if (productCode) ctx.fillText(productCode, img.width - padding, padding);
+          if (customCode || productCode) ctx.fillText(customCode || productCode, img.width - padding, padding);
           
           ctx.fillStyle = "#475569"; 
           ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
-          if (sizes) {
-              const sizeArray = sizes.split(/[,/|،\n]/).map(s => s.trim()).filter(Boolean);
-              let sizeY = padding + (img.width * 0.06);
+          if (customSizes || sizes) {
+              const sizeArray = (customSizes || sizes).split(/[,/|،\n]/).map(s => s.trim()).filter(Boolean);
+                            let sizeY = padding + (img.width * 0.06);
               sizeArray.forEach(sizeLine => {
                 ctx.fillText(sizeLine, img.width - padding, sizeY);
                 sizeY += (img.width * 0.045);
               });
             }
             
-            if (marketingDesc) {
+            if (customDesc || marketingDesc) {
               ctx.font = `bold ${img.width * 0.04}px "Tajawal", "Cairo", sans-serif`;
               ctx.fillStyle = '#1e293b';
               ctx.textAlign = 'center';
               ctx.direction = 'rtl';
               
               // Word wrap for Arabic
-              const words = marketingDesc.split(' ');
+              const words = (customDesc || marketingDesc).split(' ');
               let line = '';
               let y = canvas.height - (img.width * 0.15); // Bottom margin
               
@@ -269,6 +273,85 @@ export default function AIStudioPage() {
     });
   };
 
+  
+  const processQueue = async () => {
+    if (queue.length === 0) return;
+    setLoading(true);
+    setProcessingIndex(0);
+    setShowGallery(true);
+    
+    let currentGallery = [...galleryImages];
+    
+    for (let i = 0; i < queue.length; i++) {
+      setProcessingIndex(i);
+      try {
+        const currentFile = queue[i];
+        
+        // 1. Read file to Base64
+        const b64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(currentFile);
+        });
+        
+        // 2. Analyze Garment
+        const optB64 = await resizeImageForAnalysis(b64);
+        const analyzeRes = await fetch('/api/analyze-garment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ garmentImage: optB64, generateMarketingDesc })
+        });
+        const analyzeData = await analyzeRes.json();
+        
+        let genSizes = '';
+        let genSku = '';
+        let genDesc = '';
+        let genPrompt = stylePrompt; // Default fallback
+        
+        if (analyzeRes.ok && !analyzeData.error) {
+          if (analyzeData.size) genSizes = analyzeData.size;
+          if (analyzeData.sku) genSku = analyzeData.sku;
+          if (analyzeData.marketing_desc) genDesc = analyzeData.marketing_desc;
+          if (analyzeData.suggestion) genPrompt = analyzeData.suggestion;
+        }
+
+        const finalPrompt = garmentDirection === 'back' 
+          ? `Model is facing backwards, walking away from the camera, showing the BACK of the garment. ${genPrompt}`
+          : genPrompt;
+          
+        // 3. Generate Image
+        const genRes = await fetch('/api/generate/base64', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'ready_to_generate',
+            garmentImage: b64,
+            modelImage: base64ModelImage,
+            modelType,
+            category,
+            style: finalPrompt,
+          })
+        });
+        
+        const genData = await genRes.json();
+        if (genData.imageUrl) {
+          const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
+          currentGallery = [finalImageUrl, ...currentGallery];
+          localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery));
+          setGalleryImages([...currentGallery]); // trigger re-render
+        }
+      } catch (err) {
+        console.error("Error processing item", i, err);
+      }
+    }
+    
+    setLoading(false);
+    setProcessingIndex(-1);
+    setIsBulkMode(false);
+    setQueue([]);
+    toast.success("تم الانتهاء من التوليد الجماعي!");
+  };
+
   const handleGenerate = async () => {
     if (!base64Image) {
       toast.error("الرجاء رفع صورة المنتج أولاً");
@@ -304,7 +387,7 @@ export default function AIStudioPage() {
       } else if (data.imageUrl) {
         
         toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
-        const finalImageUrl = await applyCatalogueOverlay(data.imageUrl);
+        const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
         
         const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
         const updated = [finalImageUrl, ...existing];
@@ -657,7 +740,7 @@ export default function AIStudioPage() {
             )}
 
             <button
-              onClick={handleGenerate}
+              onClick={isBulkMode ? processQueue : handleGenerate}
               disabled={loading || !base64Image || isAnalyzing}
               className={`w-full py-5 rounded-2xl font-bold text-lg text-white shadow-xl flex items-center justify-center gap-3 transition-all ${
                 loading || !base64Image || isAnalyzing
@@ -668,12 +751,12 @@ export default function AIStudioPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>جاري التوليد والتصميم (قد يستغرق 30 ثانية)...</span>
+                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد والتصميم (قد يستغرق 30 ثانية)...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-6 h-6" />
-                  <span>بدء التصميم وإنشاء صفحة الكتالوج!</span>
+                  <span>{isBulkMode ? `بدء التوليد الجماعي لـ ${queue.length} صور 🚀` : 'بدء التصميم وإنشاء صفحة الكتالوج!'}</span>
                 </>
               )}
             </button>
