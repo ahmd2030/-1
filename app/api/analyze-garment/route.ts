@@ -24,7 +24,8 @@ Instructions:
    - Determine the SEASON and VIBE of the clothing.
    - Invent a breathtaking, rich, immersive, real-world photography background that logically matches the clothing.
    - Ensure massive CREATIVE VARIETY. Do not repeat generic backgrounds.
-   - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic) and end with a candid natural lifestyle pose.
+   - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic).
+   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting, kneeling, or crawling.
    
 2. "extracted_size": 
    - Look closely at ALL text written on the image (top left, tags, etc).
@@ -71,7 +72,6 @@ FORMAT: You must respond in pure JSON.
       }
     };
 
-    // Use the latest modern aliases from the user's available models list
     const modelsToTry = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
     let data: any = null;
     let lastError = "";
