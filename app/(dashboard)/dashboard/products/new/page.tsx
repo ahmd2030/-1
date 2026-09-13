@@ -3,7 +3,7 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw, Camera, Printer, FileArchive } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw, Camera, Printer, FileArchive , Edit3} from 'lucide-react';
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
@@ -37,14 +37,21 @@ export default function AIStudioPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [editingItem, setEditingItem] = useState<any>(null);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-      setGalleryImages(stored);
+      const normalized = stored.map((item: any) => {
+        if (typeof item === 'string') {
+          return { id: Math.random().toString(), cleanUrl: item, previewUrl: item, sizes: '', sku: '', desc: '' };
+        }
+        return item;
+      });
+      setGalleryImages(normalized);
     } catch(e) {}
   }, [showGallery]);
 
@@ -352,7 +359,8 @@ export default function AIStudioPage() {
         const genData = await genRes.json();
         if (genData.imageUrl) {
           const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
-          currentGallery = [finalImageUrl, ...currentGallery];
+          const newItem = { id: Math.random().toString(), cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc };
+          currentGallery = [newItem, ...currentGallery];
           localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery));
           setGalleryImages([...currentGallery]); // trigger re-render
         }
@@ -406,7 +414,8 @@ export default function AIStudioPage() {
         const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
         
         const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-        const updated = [finalImageUrl, ...existing];
+        const newItem = { id: Math.random().toString(), cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc };
+        const updated = [newItem, ...existing];
         localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
         setGalleryImages(updated);
         
@@ -425,7 +434,7 @@ export default function AIStudioPage() {
     const zip = new JSZip();
     
     for (let i = 0; i < galleryImages.length; i++) {
-      const url = galleryImages[i];
+      const url = typeof galleryImages[i] === 'string' ? galleryImages[i] : galleryImages[i].previewUrl;
       const response = await fetch(url);
       const blob = await response.blob();
       zip.file(`catalogue-${i+1}.jpg`, blob);
@@ -460,7 +469,7 @@ export default function AIStudioPage() {
             </button>
           </div>
           <div class="grid">
-            ${galleryImages.map(img => `<img src="${img}" />`).join('')}
+            ${galleryImages.map(img => `<img src="${typeof img === 'string' ? img : img.previewUrl}" />`).join('')}
           </div>
         </body>
       </html>
