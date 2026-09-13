@@ -29,7 +29,7 @@ export class FashnProvider implements AIProvider {
       // Restructured to force the AI to process the ENVIRONMENT first, then the SUBJECT.
       const promptText = `SUBJECT: A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
       ENVIRONMENT AND SETTING: ${options.style || 'High-end indoor studio'}. 
-      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, crawling, or lying down poses. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Photorealistic, ultra detailed 8k.`;
+      CRITICAL INSTRUCTIONS: DO NOT MIRROR OR FLIP THE GARMENT. Any text, numbers, or logos on the clothing MUST remain exactly as they appear in the original image (un-mirrored). The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, crawling, or lying down poses. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Photorealistic, ultra detailed 8k.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
