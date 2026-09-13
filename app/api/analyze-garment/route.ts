@@ -21,11 +21,11 @@ Analyze the provided clothing image carefully.
 
 Instructions:
 1. "prompt": 
-   - Determine the SEASON, VIBE, and PURPOSE of the clothing.
-   - IMPORTANT LOCATION RULE: By default, ALWAYS prioritize high-end INDOOR sets, luxury fashion studios, aesthetic children's bedrooms, elegant living rooms, or minimalist studio backgrounds. 
-   - ONLY use outdoor locations (like beaches, sea, sand, streets, or snow) RARELY, and ONLY IF the outfit is 100% strictly designed for that exact environment (e.g. swimwear for beach, heavy snow coat for snow).
-   - Describe this environment with professional lighting terms (soft studio lighting, cinematic window light, 8k, photorealistic).
-   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. The model is WEARING STYLISH MATCHING SHOES (sneakers, boots, etc). Full body is visible." DO NOT suggest sitting, kneeling, or being barefoot.
+   - Analyze the CLOTHING ONLY. You MUST COMPLETELY IGNORE the background, furniture, or setting of the uploaded image. Do not copy its lighting or vibe.
+   - Invent a breathtaking, fresh, completely new high-end INDOOR photography set (luxury fashion studio, aesthetic modern room, or minimalist elegant backdrop).
+   - ONLY use outdoor locations (beaches, snow) IF AND ONLY IF the outfit is strictly designed for it (swimwear, winter coats).
+   - Describe this environment with professional lighting terms (soft studio lighting, cinematic, 8k, ultra-realistic photograph).
+   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally. The model is WEARING STYLISH MATCHING SHOES. Full body is visible." DO NOT suggest sitting, kneeling, or being barefoot.
    
 2. "extracted_size": 
    - Look closely at ALL text written on the image (top left, tags, etc).

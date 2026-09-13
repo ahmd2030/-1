@@ -26,9 +26,9 @@ export class FashnProvider implements AIProvider {
         subjectPrompt = `two girl models standing side by side, one toddler girl and one young girl (siblings), BOTH wearing the exact same identical`;
       }
 
-      const promptText = `A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
+      const promptText = `A high-end, ultra-realistic fashion editorial photograph of ${subjectPrompt} ${categoryText}. 
       ${options.style || ''}. 
-      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT on their feet. The model MUST BE WEARING STYLISH SHOES. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, or crawling. Full body must be clearly visible from head to shoes. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, or hangers. Add natural skin texture and highly detailed realistic face. Photorealistic 8k.`;
+      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT. The model MUST BE WEARING STYLISH SHOES. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, or crawling. Full body must be clearly visible from head to shoes. The garments MUST NOT have any price tags, labels, or hangers. Add natural human skin texture and highly detailed realistic face. Masterpiece, 8k, photorealistic.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
