@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { FashnProvider } from '@/lib/ai/fashn';
 
 export const maxDuration = 60;
@@ -51,9 +51,23 @@ export async function POST(request: Request) {
       style,
     });
 
+    // Proxy the image to base64 to avoid Canvas CORS issues on the client
+    let finalImageUrl = result.imageUrl;
+    try {
+      const imgRes = await fetch(result.imageUrl);
+      if (imgRes.ok) {
+        const arrayBuffer = await imgRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+        finalImageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+      }
+    } catch (e) {
+      console.error('Failed to proxy image to base64:', e);
+    }
+
     return NextResponse.json({
       status: 'success',
-      imageUrl: result.imageUrl,
+      imageUrl: finalImageUrl,
       brandName,
       promoText,
     });

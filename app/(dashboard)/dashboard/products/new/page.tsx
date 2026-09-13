@@ -113,7 +113,7 @@ export default function AIStudioPage() {
       const res = await fetch('/api/analyze-garment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ garmentImage: optimizedImage })
+        body: JSON.stringify({ garmentImage: optimizedImage, generateMarketingDesc })
       });
       
       const text = await res.text();
@@ -129,6 +129,7 @@ export default function AIStudioPage() {
         setStylePrompt(data.suggestion);
         if (data.size && data.size.trim().length > 0) setSizes(data.size);
         if (data.sku && data.sku.trim().length > 0) setProductCode(data.sku);
+        if (data.marketing_desc && data.marketing_desc.trim().length > 0) setMarketingDesc(data.marketing_desc);
         toast.success("تم ابتكار خلفية جديدة واستخراج البيانات بنجاح!");
       }
     } catch(e: any) {
@@ -183,6 +184,37 @@ export default function AIStudioPage() {
           ctx.fillStyle = "#475569"; 
           ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
           if (sizes) ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
+            
+            if (marketingDesc) {
+              ctx.font = `bold ${img.width * 0.04}px "Tajawal", "Cairo", sans-serif`;
+              ctx.fillStyle = '#1e293b';
+              ctx.textAlign = 'center';
+              ctx.direction = 'rtl';
+              
+              // Word wrap for Arabic
+              const words = marketingDesc.split(' ');
+              let line = '';
+              let y = canvas.height - (img.width * 0.15); // Bottom margin
+              
+              ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+              ctx.shadowBlur = 15;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+
+              for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > canvas.width - (padding * 2) && n > 0) {
+                  ctx.fillText(line, canvas.width / 2, y);
+                  line = words[n] + ' ';
+                  y += (img.width * 0.05);
+                } else {
+                  line = testLine;
+                }
+              }
+              ctx.fillText(line, canvas.width / 2, y);
+              ctx.shadowColor = 'transparent';
+            }
           
           try {
             resolve(canvas.toDataURL('image/jpeg', 0.95));
