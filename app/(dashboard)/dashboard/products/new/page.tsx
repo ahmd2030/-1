@@ -377,7 +377,7 @@ export default function AIStudioPage() {
           }
       } catch (err) {
         console.error("Error processing item", i, err);
-          setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'error', error: err.message || "فشلت العملية" } : s));
+          setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'error', error: (err as Error).message || "فشلت العملية" } : s));
         }
     }
     
