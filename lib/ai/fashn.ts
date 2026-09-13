@@ -21,14 +21,15 @@ export class FashnProvider implements AIProvider {
 
       let subjectPrompt = `a ${options.modelType || 'person'}`;
       if (options.modelType === 'two boys') {
-        subjectPrompt = `two boy models standing side by side, one toddler boy and one young boy (siblings), BOTH wearing the exact same identical`;
+        subjectPrompt = `two boy siblings standing together, BOTH wearing the identical`;
       } else if (options.modelType === 'two girls') {
-        subjectPrompt = `two girl models standing side by side, one toddler girl and one young girl (siblings), BOTH wearing the exact same identical`;
+        subjectPrompt = `two girl siblings standing together, BOTH wearing the identical`;
       }
 
-      const promptText = `A high-end, ultra-realistic fashion editorial photograph of ${subjectPrompt} ${categoryText}. 
-      ${options.style || ''}. 
-      CRITICAL INSTRUCTIONS: The model MUST BE STANDING UPRIGHT. The model MUST BE WEARING STYLISH SHOES. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, or crawling. Full body must be clearly visible from head to shoes. The garments MUST NOT have any price tags, labels, or hangers. Add natural human skin texture and highly detailed realistic face. Masterpiece, 8k, photorealistic.`;
+      // Reordered prompt: Background and lighting first, then the subject, then the strict rules.
+      const promptText = `${options.style || ''}. 
+      A breathtaking, ultra-realistic fashion editorial photograph of ${subjectPrompt} ${categoryText}. 
+      CRITICAL: Model MUST BE STANDING UPRIGHT wearing STYLISH SHOES. DO NOT generate barefoot, sitting, or crawling. Full body visible from head to shoes. Natural human skin texture, highly detailed realistic face. Masterpiece, 8k.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
