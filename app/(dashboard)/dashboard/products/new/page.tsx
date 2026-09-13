@@ -185,7 +185,14 @@ export default function AIStudioPage() {
           
           ctx.fillStyle = "#475569"; 
           ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
-          if (sizes) ctx.fillText(sizes, img.width - padding, padding + (img.width * 0.06));
+          if (sizes) {
+              const sizeArray = sizes.split(/[,/|،\n]/).map(s => s.trim()).filter(Boolean);
+              let sizeY = padding + (img.width * 0.06);
+              sizeArray.forEach(sizeLine => {
+                ctx.fillText(sizeLine, img.width - padding, sizeY);
+                sizeY += (img.width * 0.045);
+              });
+            }
             
             if (marketingDesc) {
               ctx.font = `bold ${img.width * 0.04}px "Tajawal", "Cairo", sans-serif`;
@@ -496,7 +503,8 @@ export default function AIStudioPage() {
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">المقاسات (مستخرج آلياً)</label>
-                      <input type="text" value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" placeholder="S.M.L | 2-5 Years" />
+                      <textarea value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left resize-none h-[42px] focus:h-24 transition-all" dir="ltr" placeholder="S.M.L 
+2-5 Years" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">رمز المنتج (مستخرج آلياً)</label>
