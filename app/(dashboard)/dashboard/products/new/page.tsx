@@ -1,7 +1,9 @@
 ﻿"use client";
 
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw, Camera, Printer } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw, Camera, Printer, FileArchive } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AIStudioPage() {
@@ -17,6 +19,8 @@ export default function AIStudioPage() {
   
   const [stylePrompt, setStylePrompt] = useState<string>("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [generateMarketingDesc, setGenerateMarketingDesc] = useState<boolean>(false);
+  const [marketingDesc, setMarketingDesc] = useState<string>('');
   
   const [catalogueMode, setCatalogueMode] = useState<boolean>(true);
   const [brandName, setBrandName] = useState<string>("Baby Rose");
@@ -276,6 +280,21 @@ export default function AIStudioPage() {
     }
   };
 
+    const downloadAllAsZip = async () => {
+    if (galleryImages.length === 0) return;
+    const zip = new JSZip();
+    
+    for (let i = 0; i < galleryImages.length; i++) {
+      const url = galleryImages[i];
+      const response = await fetch(url);
+      const blob = await response.blob();
+      zip.file(`catalogue-${i+1}.jpg`, blob);
+    }
+    
+    const content = await zip.generateAsync({ type: 'blob' });
+    saveAs(content, 'Fashion-Catalogue.zip');
+  };
+
   const printGalleryAsCatalogue = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -515,7 +534,18 @@ export default function AIStudioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
+                                <div className="flex items-center justify-between bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 mb-6 mt-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input type="checkbox" className="sr-only" checked={generateMarketingDesc} onChange={(e) => setGenerateMarketingDesc(e.target.checked)} />
+                    <div className={`block w-10 h-6 rounded-full transition-colors ${generateMarketingDesc ? 'bg-emerald-600' : 'bg-slate-300'}`}></div>
+                    <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${generateMarketingDesc ? 'translate-x-4' : ''}`}></div>
+                  </div>
+                  <span className="text-sm font-bold text-emerald-900">توليد وصف تسويقي آلي (العربية) على الصورة</span>
+                </label>
+              </div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" dir="rtl">
                     {[
                       { id: 'toddler girl', label: 'بنت صغيرة (2-5)' },
@@ -622,13 +652,22 @@ export default function AIStudioPage() {
               </button>
             </div>
             {galleryImages.length > 0 && (
+              <div className="flex flex-col gap-2">
               <button 
                 onClick={printGalleryAsCatalogue}
                 className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-sm transition-colors"
               >
                 <Printer className="w-4 h-4" />
-                تحميل الكتالوج كـ PDF 
+                تحميل الكتالوج كـ PDF
               </button>
+              <button 
+                onClick={downloadAllAsZip}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm transition-colors mt-2"
+              >
+                <FileArchive className="w-4 h-4" />
+                تحميل جميع الصور (ZIP)
+              </button>
+                          </div>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50">

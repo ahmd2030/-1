@@ -4,7 +4,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { garmentImage } = await req.json();
+    const { garmentImage, generateMarketingDesc } = await req.json();
     
     const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI;
     
@@ -12,7 +12,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         suggestion: "A beautiful luxury indoor studio setup, elegant decor, professional studio lighting. Natural candid walking pose, smiling.",
         size: "No Gemini Key",
-        sku: "Add GEMINI_API_KEY"
+        sku: "Add GEMINI_API_KEY",
+        marketing_desc: ""
       });
     }
 
@@ -38,12 +39,19 @@ Instructions:
    - Look closely at ALL text written on the image (top left, tags, etc).
    - Extract the exact product code (e.g., "V6118", "BR-123").
    - If there is NO text, INVENT a random SKU.
+   
+${generateMarketingDesc ? `4. "marketing_desc":
+   - Write a short, highly engaging, elegant 1-2 sentence marketing description in ARABIC (e.g., "طقم أنيق يمنح طفلك إطلالة ساحرة ومريحة...").
+   - Do NOT use emojis.
+` : `4. "marketing_desc":
+   - Return an empty string "".`}
 
 FORMAT: You must respond in pure JSON.
 {
   "prompt": "...",
   "extracted_size": "...",
-  "extracted_sku": "..."
+  "extracted_sku": "...",
+  "marketing_desc": "..."
 }`;
 
     let base64Data = garmentImage;
@@ -109,7 +117,8 @@ FORMAT: You must respond in pure JSON.
       return NextResponse.json({ 
         suggestion: lastError, 
         size: "Error", 
-        sku: lastError.substring(0, 40)
+        sku: lastError.substring(0, 40),
+        marketing_desc: ""
       });
     }
 
@@ -117,7 +126,7 @@ FORMAT: You must respond in pure JSON.
     if (!resultText) {
       const finishReason = data.candidates?.[0]?.finishReason;
       if (finishReason) {
-         return NextResponse.json({ suggestion: `Blocked by safety: ${finishReason}`, size: "Error", sku: finishReason });
+         return NextResponse.json({ suggestion: `Blocked by safety: ${finishReason}`, size: "Error", sku: finishReason, marketing_desc: "" });
       }
       throw new Error("No suggestion returned");
     }
@@ -130,21 +139,24 @@ FORMAT: You must respond in pure JSON.
       return NextResponse.json({ 
         suggestion: resultText, 
         size: "Format Error", 
-        sku: "Format Error" 
+        sku: "Format Error",
+        marketing_desc: ""
       });
     }
 
     return NextResponse.json({ 
       suggestion: parsed.prompt || "", 
       size: parsed.extracted_size || "", 
-      sku: parsed.extracted_sku || "" 
+      sku: parsed.extracted_sku || "",
+      marketing_desc: parsed.marketing_desc || ""
     });
   } catch (error: any) {
     console.error('Analysis error:', error);
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
-      sku: error.message ? error.message.substring(0, 40) : "Error"
+      sku: error.message ? error.message.substring(0, 40) : "Error",
+      marketing_desc: ""
     });
   }
 }
