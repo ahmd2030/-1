@@ -25,7 +25,7 @@ Instructions:
    - Invent a breathtaking, rich, immersive, real-world photography background that logically matches the clothing.
    - Ensure massive CREATIVE VARIETY. Do not repeat generic backgrounds.
    - Describe this environment with professional lighting terms (cinematic, golden hour, 8k, photorealistic).
-   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting, kneeling, or crawling.
+   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." Do NOT suggest sitting or kneeling.
    
 2. "extracted_size": 
    - Look closely at ALL text written on the image (top left, tags, etc).
@@ -69,7 +69,13 @@ FORMAT: You must respond in pure JSON.
       ],
       generationConfig: {
         temperature: 0.9
-      }
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
     };
 
     const modelsToTry = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
@@ -91,17 +97,29 @@ FORMAT: You must respond in pure JSON.
       } else {
         lastError = data.error?.message || `HTTP ${response.status}`;
         if (!lastError.includes("not found")) {
-          break; 
+          break; // Stop on real errors like Quota or Safety
         }
       }
     }
 
     if (lastError) {
-      return NextResponse.json({ suggestion: lastError, size: "API Error", sku: "Model Error" });
+      // Put the exact error in the SKU box so we can see it
+      return NextResponse.json({ 
+        suggestion: lastError, 
+        size: "Error", 
+        sku: lastError.substring(0, 40) // Put partial error in SKU box
+      });
     }
 
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!resultText) throw new Error("No suggestion returned");
+    if (!resultText) {
+      // It might be blocked by prompt safety
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason) {
+         return NextResponse.json({ suggestion: `Blocked by safety: ${finishReason}`, size: "Error", sku: finishReason });
+      }
+      throw new Error("No suggestion returned");
+    }
 
     let cleanJson = resultText.trim();
     if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -130,7 +148,7 @@ FORMAT: You must respond in pure JSON.
     return NextResponse.json({ 
       suggestion: "A stunning natural lifestyle shot in a beautiful outdoor environment, perfect lighting, candid pose.",
       size: "Gemini Error",
-      sku: "Error"
+      sku: error.message ? error.message.substring(0, 40) : "Error"
     });
   }
 }
