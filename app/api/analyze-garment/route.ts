@@ -16,16 +16,18 @@ export async function POST(req: Request) {
       });
     }
 
-    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise data-extraction engine.
+    const systemPrompt = `You are a world-class AI Fashion Art Director and Master Prompt Engineer for Vogue Magazine.
 Analyze the provided clothing image carefully.
 
 Instructions:
 1. "prompt": 
    - Analyze the CLOTHING ONLY. You MUST COMPLETELY IGNORE the background, furniture, or setting of the uploaded image. Do not copy its lighting or vibe.
-   - Invent a breathtaking, fresh, completely new high-end INDOOR photography set (luxury fashion studio, aesthetic modern room, or minimalist elegant backdrop).
-   - ONLY use outdoor locations (beaches, snow) IF AND ONLY IF the outfit is strictly designed for it (swimwear, winter coats).
-   - Describe this environment with professional lighting terms (soft studio lighting, cinematic, 8k, ultra-realistic photograph).
-   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT, walking or posing naturally. The model is WEARING STYLISH MATCHING SHOES. Full body is visible." DO NOT suggest sitting, kneeling, or being barefoot.
+   - Invent an ULTRA-DETAILED, breathtaking, high-end INDOOR photography set. 
+   - You MUST describe specific architectural details, interior design elements, and decor (e.g., "luxury Parisian apartment with ornate moldings, herringbone wood floor, and a vintage Persian rug", "modern aesthetic studio with soft sheer curtains and minimalist furniture").
+   - Describe lighting with expert photography terms (e.g., "soft diffuse morning sunlight streaming through a large window", "cinematic volumetric lighting", "professional studio lighting", "8k, photorealistic").
+   - Describe a DYNAMIC, realistic fashion pose (e.g., "walking confidently towards the camera", "standing casually in a high-fashion pose").
+   - CRITICAL: End the prompt with "Model is STANDING UPRIGHT. The model is WEARING STYLISH MATCHING SHOES. Full body is visible from head to toe." DO NOT suggest sitting, kneeling, or being barefoot.
+   - The output must be highly descriptive, rich in adjectives, and at least 3-4 sentences long to guarantee a masterpiece.
    
 2. "extracted_size": 
    - Look closely at ALL text written on the image (top left, tags, etc).
@@ -68,7 +70,7 @@ FORMAT: You must respond in pure JSON.
         }
       ],
       generationConfig: {
-        temperature: 0.9
+        temperature: 1.0 // Increased for maximum creativity
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
