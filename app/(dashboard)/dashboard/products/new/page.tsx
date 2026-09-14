@@ -61,7 +61,7 @@ export default function AIStudioPage() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 512;
+        const MAX_SIZE = 1200; // Increased to preserve text readability for Gemini
         let width = img.width;
         let height = img.height;
 
@@ -776,15 +776,17 @@ export default function AIStudioPage() {
                 <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" dir="rtl">
                     {[
-                      { id: 'toddler girl', label: 'بنت صغيرة (2-5)' },
-                      { id: 'toddler boy', label: 'ولد صغير (2-5)' },
-                      { id: 'young girl', label: 'بنت (6-12)' },
-                      { id: 'young boy', label: 'ولد (6-12)' },
-                      { id: 'two girls', label: 'بنتان معاً 👯‍♀️' },
-                      { id: 'two boys', label: 'ولدان معاً 👯‍♂️' },
-                      { id: 'woman', label: 'امرأة' },
-                      { id: 'man', label: 'رجل' }
-                    ].map(type => (
+                        { id: 'baby girl', label: 'طفلة (9 أشهر)' },
+                        { id: 'baby boy', label: 'طفل (9 أشهر)' },
+                        { id: 'toddler girl', label: 'بنت صغيرة (3 سنوات)' },
+                        { id: 'toddler boy', label: 'ولد صغير (3 سنوات)' },
+                        { id: 'young girl', label: 'بنت (6-12 سنة)' },
+                        { id: 'young boy', label: 'ولد (6-12 سنة)' },
+                        { id: 'teen girl', label: 'شابة (16 سنة)' },
+                        { id: 'teen boy', label: 'شاب (16 سنة)' },
+                        { id: 'woman', label: 'امرأة' },
+                        { id: 'man', label: 'رجل' }
+                      ].map(type => (
                       <button
                         key={type.id}
                         onClick={() => setModelType(type.id)}
