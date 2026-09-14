@@ -134,7 +134,8 @@ FORMAT: You must respond in pure JSON.
 
     let parsed;
     try {
-      parsed = JSON.parse(resultText);
+      let cleanText = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleanText);
     } catch(e) {
       console.error("JSON Parse Error:", resultText);
       return NextResponse.json({ error: "Format Error from Gemini" }, { status: 500 });
