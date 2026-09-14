@@ -923,6 +923,17 @@ export default function AIStudioPage() {
                 <FileArchive className="w-4 h-4" />
                 تحميل جميع الصور (ZIP)
               </button>
+                <button 
+                  onClick={() => {
+                    if(confirm('هل أنت متأكد من مسح جميع الصور المعلقة من المعرض الجانبي؟')) {
+                      setGalleryImages([]);
+                      localStorage.removeItem('ai_fashion_generated_images');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 py-2 rounded-xl font-bold text-xs transition-colors shadow-sm mt-2"
+                >
+                  مسح المعرض الجانبي
+                </button>
                           </div>
             )}
           </div>
