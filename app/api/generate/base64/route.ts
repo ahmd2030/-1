@@ -69,6 +69,8 @@ export async function POST(req: Request) {
 
     // 3. Step 2: Dress the Human using IDM-VTON
     console.log('Applying garment using IDM-VTON...');
+    // Add a 3 second delay to prevent Replicate's 429 Too Many Requests (burst limit)
+    await new Promise(resolve => setTimeout(resolve, 3000));
     // Make sure garmentImage is a proper Data URI if it's base64
     let garmInput = garmentImage;
     if (!garmInput.startsWith('data:')) {
