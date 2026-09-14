@@ -19,7 +19,19 @@ export class FashnProvider implements AIProvider {
       if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
       if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
 
-      let subjectPrompt = `a ${options.modelType || 'person'}${(options.modelType && options.modelType.includes('girl') || options.modelType === 'woman') ? ' with long beautiful hair' : ''}`;
+      let subjectPrompt = options.modelType || 'person';
+      const isFemale = subjectPrompt.includes('girl') || subjectPrompt === 'woman';
+      const isMale = subjectPrompt.includes('boy') || subjectPrompt === 'man';
+      
+      let genderModifiers = "";
+      if (isFemale) {
+        genderModifiers = "(STRICTLY FEMALE model, very feminine facial features, very long beautiful flowing hair:1.5)";
+      } else if (isMale) {
+        genderModifiers = "(STRICTLY MALE model, handsome masculine facial features, short stylish boys haircut:1.5)";
+      }
+      
+      subjectPrompt = `a ${subjectPrompt} ${genderModifiers}`;
+      
       if (options.modelType === 'two boys') {
         subjectPrompt = `two boy models standing side by side, one toddler boy and one young boy (siblings), BOTH wearing the exact same identical`;
       } else if (options.modelType === 'two girls') {
