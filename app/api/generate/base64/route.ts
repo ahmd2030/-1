@@ -35,19 +35,21 @@ export async function POST(req: Request) {
     Soft natural skin texture, perfect lighting, full body shot.`;
 
     const fluxOutput = await replicate.run(
-      "black-forest-labs/flux-schnell",
+      "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
       {
         input: {
           prompt: fluxPrompt,
-          aspect_ratio: "3:4",
-          output_format: "png",
-          num_outputs: 1
+          width: 768,
+          height: 1024,
+          refine: "expert_ensemble_refiner",
+          apply_watermark: false,
+          num_inference_steps: 25
         }
       }
     ) as any;
 
     if (!fluxOutput) {
-      throw new Error("FLUX output is null or undefined.");
+      throw new Error("SDXL output is null or undefined.");
     }
     
     // Sometimes Replicate returns a single string instead of an array, or a stream
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
     } else if (fluxOutput && typeof fluxOutput === 'object' && fluxOutput.url) {
       humanImageUrl = fluxOutput.url;
     } else {
-      throw new Error("FLUX returned unknown format: " + JSON.stringify(fluxOutput));
+      throw new Error("SDXL returned unknown format: " + JSON.stringify(fluxOutput));
     }
 
     
