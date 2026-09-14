@@ -58,8 +58,35 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
+    // 1. Fetch available models for this specific API key
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const listData = await listRes.json();
+    
+    let targetModelName = 'gemini-1.5-pro'; // Default fallback
+    
+    if (listData && listData.models) {
+      // Find the best model that supports generateContent
+      const availableModels = listData.models.map((m: any) => m.name.replace('models/', ''));
+      
+      if (availableModels.includes('gemini-1.5-pro')) {
+        targetModelName = 'gemini-1.5-pro';
+      } else if (availableModels.includes('gemini-1.5-flash')) {
+        targetModelName = 'gemini-1.5-flash';
+      } else if (availableModels.includes('gemini-1.5-pro-latest')) {
+        targetModelName = 'gemini-1.5-pro-latest';
+      } else if (availableModels.includes('gemini-1.5-flash-latest')) {
+        targetModelName = 'gemini-1.5-flash-latest';
+      } else if (availableModels.includes('gemini-pro-vision')) {
+        targetModelName = 'gemini-pro-vision';
+      } else {
+        // Just pick the first one that has "vision" or "1.5"
+        const fallback = availableModels.find((m: string) => m.includes('vision') || m.includes('1.5'));
+        if (fallback) targetModelName = fallback;
+      }
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: targetModelName });
 
     const result = await model.generateContent([
       systemPrompt,
