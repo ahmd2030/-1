@@ -19,17 +19,17 @@ export class FashnProvider implements AIProvider {
       if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
       if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
 
-      let subjectPrompt = `a ${options.modelType || 'person'}`;
+      let subjectPrompt = `a ${options.modelType || 'person'}${(options.modelType && options.modelType.includes('girl') || options.modelType === 'woman') ? ' with long beautiful hair' : ''}`;
       if (options.modelType === 'two boys') {
         subjectPrompt = `two boy models standing side by side, one toddler boy and one young boy (siblings), BOTH wearing the exact same identical`;
       } else if (options.modelType === 'two girls') {
-        subjectPrompt = `two girl models standing side by side, one toddler girl and one young girl (siblings), BOTH wearing the exact same identical`;
+        subjectPrompt = `two girl models with long beautiful hair standing side by side, one toddler girl and one young girl (siblings), BOTH wearing the exact same identical`;
       }
 
       // Restructured to force the AI to process the ENVIRONMENT first, then the SUBJECT.
       const promptText = `SUBJECT: A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
       ENVIRONMENT AND SETTING: ${options.style || 'High-end indoor studio'}. 
-      CRITICAL INSTRUCTIONS: DO NOT MIRROR OR FLIP THE GARMENT. Any text, numbers, or logos on the clothing MUST remain exactly as they appear in the original image (un-mirrored). The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, crawling, or lying down poses. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Photorealistic, ultra detailed 8k.`;
+      CRITICAL INSTRUCTIONS: DO NOT MIRROR OR FLIP THE GARMENT. Any text, numbers, or logos on the clothing MUST remain exactly as they appear in the original image (un-mirrored). The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, crawling, or lying down poses. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Hyper-realistic, ultra detailed 8k, raw photo, DSLR, Fujifilm XT4, soft natural skin texture, masterpiece.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
@@ -40,6 +40,7 @@ export class FashnProvider implements AIProvider {
         inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
         inputs.prompt = promptText;
+        inputs.negative_prompt = "plastic, doll, artificial, smooth, 3d render, cgi, ugly, distorted, deformed, poorly drawn face, poorly drawn eyes, bad anatomy";
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {
