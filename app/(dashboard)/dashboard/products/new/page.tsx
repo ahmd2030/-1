@@ -54,7 +54,7 @@ export default function AIStudioPage() {
       });
       setGalleryImages(normalized);
     } catch(e) {}
-  }, [showGallery]);
+  }, []); // Fixed race condition that erased RAM images when storage is full
 
   const resizeImageForAnalysis = (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
