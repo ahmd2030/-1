@@ -7,9 +7,10 @@ export async function POST(req: Request) {
   try {
     const { garmentImage, generateMarketingDesc } = await req.json();
     
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GEMINI;
+    const openaiKey = process.env.OPENAI_API_KEY;
     
-    if (!apiKey) {
+    if (!geminiKey && !openaiKey) {
       return NextResponse.json({ 
         suggestion: "A beautiful luxury indoor studio setup, elegant decor, professional studio lighting. Natural candid walking pose, smiling.",
         size: "",
@@ -58,59 +59,77 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro-latest',
-      'gemini-pro-vision',
-      'gemini-1.0-pro-vision-latest'
-    ];
-    
-    let result = null;
+    let resultText = "";
+    let geminiSuccess = false;
     let allErrors = [];
-    
-    for (const m of modelsToTry) {
-      try {
-        const model = genAI.getGenerativeModel({ model: m });
-        result = await model.generateContent([
-          systemPrompt,
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          }
-        ]);
-        // If it reaches here, it succeeded!
-        break;
-      } catch (e: any) {
-        // If it's a 429 quota error, we might want to still fail, but let's just log and continue
-        allErrors.push(m + ": " + (e.message || "Unknown error"));
+
+    // 1. Try Gemini First
+    if (geminiKey) {
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-pro-vision'];
+      
+      for (const m of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({ model: m });
+          const result = await model.generateContent([
+            systemPrompt,
+            { inlineData: { data: base64Data, mimeType: mimeType } }
+          ]);
+          const response = await result.response;
+          resultText = response.text();
+          geminiSuccess = true;
+          break;
+        } catch (e: any) {
+          allErrors.push("Gemini " + m + ": " + (e.message || "error"));
+        }
       }
     }
-    
-    if (!result) {
-      console.error("All Gemini models failed:", allErrors);
-      return NextResponse.json({ error: "All Gemini models failed. Errors: " + allErrors.join(" | ") }, { status: 500 });
+
+    // 2. Fallback to OpenAI if Gemini failed or wasn't provided
+    if (!geminiSuccess && openaiKey) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: [
+                  { type: "text", text: "Analyze this image and return the JSON." },
+                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+                ]
+              }
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 500,
+            temperature: 0.2
+          })
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        resultText = data.choices[0].message.content;
+      } catch (e: any) {
+        allErrors.push("OpenAI: " + (e.message || "error"));
+      }
     }
 
-    const response = await result.response;
-    const resultText = response.text();
+    if (!resultText) {
+      return NextResponse.json({ error: "All AI models failed. Errors: " + allErrors.join(" | ") }, { status: 500 });
+    }
 
     let parsed;
     try {
       let cleanText = resultText;
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanText = jsonMatch[0];
-      }
+      if (jsonMatch) cleanText = jsonMatch[0];
       parsed = JSON.parse(cleanText);
     } catch(e) {
-      console.error("JSON Parse Error:", resultText);
-      return NextResponse.json({ error: "Format Error from Gemini" }, { status: 500 });
+      return NextResponse.json({ error: "Format Error from AI" }, { status: 500 });
     }
 
     return NextResponse.json({ 
@@ -121,7 +140,6 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       category: parsed.extracted_category || ""
     });
   } catch (error: any) {
-    console.error('Analysis error:', error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
