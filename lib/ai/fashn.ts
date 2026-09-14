@@ -40,7 +40,7 @@ export class FashnProvider implements AIProvider {
         inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
         inputs.prompt = promptText;
-        inputs.negative_prompt = "plastic, doll, artificial, smooth, 3d render, cgi, ugly, distorted, deformed, poorly drawn face, poorly drawn eyes, bad anatomy";
+        
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {
