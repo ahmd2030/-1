@@ -21,7 +21,7 @@ export default function GenerationsPage() {
         const uid = auth?.currentUser?.uid || 'anonymous';
         const q = query(
           collection(db, "generated_images"),
-          where("userId", "==", uid),
+          // where("userId", "==", uid), // Removed to avoid composite index requirements for now
           orderBy("createdAt", "desc")
         );
         
