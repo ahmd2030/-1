@@ -1,134 +1,78 @@
 ﻿import { NextResponse } from 'next/server';
-import Replicate from 'replicate';
+import { FashnProvider } from '@/lib/ai/fashn';
 
-export async function POST(req: Request) {
+export const maxDuration = 60;
+
+async function uploadToHost(base64Image: string) {
+  const base64Data = base64Image.split(',')[1];
+  const uploadFormData = new URLSearchParams();
+  uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+  uploadFormData.append('action', 'upload');
+  uploadFormData.append('source', base64Data);
+  uploadFormData.append('format', 'json');
+
+  const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+    method: 'POST',
+    body: uploadFormData,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Failed to upload image to temporary host');
+  }
+
+  const uploadData = await uploadRes.json();
+  return uploadData.image.url;
+}
+
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    const { garmentImage, modelType, category, style, status } = body;
+    const body = await request.json();
+    const { garmentImage, modelImage, modelType, style, category, brandName, promoText } = body;
 
-    // Check for Replicate token
-    const apiKey = process.env.REPLICATE_API_TOKEN;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'REPLICATE_API_TOKEN is missing.' }, { status: 500 });
+    if (!garmentImage) {
+      return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    const replicate = new Replicate({
-      auth: apiKey,
+    const hostedGarmentUrl = await uploadToHost(garmentImage);
+    let hostedModelUrl = undefined;
+
+    if (modelImage) {
+      hostedModelUrl = await uploadToHost(modelImage);
+    }
+
+    const provider = new FashnProvider();
+    
+    const result = await provider.generate({
+      garmentImage: hostedGarmentUrl,
+      modelImage: hostedModelUrl,
+      category: category || 'tops',
+      modelType,
+      style,
     });
 
-    console.log('Starting Replicate Pipeline (FLUX + IDM-VTON)...');
-
-    // 1. Map Category
-    let vtonCategory = "upper_body";
-    if (category === "bottoms") vtonCategory = "lower_body";
-    if (category === "one-pieces") vtonCategory = "dresses";
-
-    let subjectPrompt = `a ${modelType || 'person'}`;
-    if (modelType && (modelType.includes('girl') || modelType === 'woman')) {
-      subjectPrompt += ' with long beautiful hair';
-    }
-
-    // 2. Step 1: Generate the Human Model using FLUX (Ultra-fast and cheap)
-    console.log('Generating human model with FLUX...');
-    const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing a blank tight white tank top and plain jeans. 
-    ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. 
-    Soft natural skin texture, perfect lighting, full body shot.`;
-
-    
-    const callReplicateWithRetry = async (model: any, options: any, maxRetries = 10) => {
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          return await replicate.run(model, options);
-        } catch (e: any) {
-          if (e.response && e.response.status === 429) {
-            console.log("Rate limited! Retrying in 5 seconds...");
-            await new Promise(r => setTimeout(r, 5000));
-            continue;
-          }
-          if (e.status === 429 || (e.message && e.message.includes('429'))) {
-             console.log("Rate limited! Retrying in 5 seconds...");
-             await new Promise(r => setTimeout(r, 5000));
-             continue;
-          }
-          throw e;
-        }
+    // Proxy the image to base64 to avoid Canvas CORS issues on the client
+    let finalImageUrl = result.imageUrl;
+    try {
+      const imgRes = await fetch(result.imageUrl);
+      if (imgRes.ok) {
+        const arrayBuffer = await imgRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+        finalImageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
       }
-      throw new Error("Max retries reached for Replicate API");
-    };
-
-    const fluxOutput = await callReplicateWithRetry(
-      "stability-ai/sdxl",
-      {
-        input: {
-          prompt: fluxPrompt,
-          width: 768,
-          height: 1024,
-          refine: "expert_ensemble_refiner",
-          apply_watermark: false,
-          num_inference_steps: 25
-        }
-      }
-    ) as any;
-
-    if (!fluxOutput) {
-      throw new Error("SDXL output is null or undefined.");
-    }
-    
-    // Sometimes Replicate returns a single string instead of an array, or a stream
-    let humanImageUrl = "";
-    if (Array.isArray(fluxOutput) && fluxOutput.length > 0) {
-      humanImageUrl = fluxOutput[0];
-    } else if (typeof fluxOutput === 'string') {
-      humanImageUrl = fluxOutput;
-    } else if (fluxOutput && typeof fluxOutput === 'object' && fluxOutput.url) {
-      humanImageUrl = fluxOutput.url;
-    } else {
-      throw new Error("SDXL returned unknown format: " + JSON.stringify(fluxOutput));
+    } catch (e) {
+      console.error('Failed to proxy image to base64:', e);
     }
 
-    
-    console.log('Human generated:', humanImageUrl);
-
-    // 3. Step 2: Dress the Human using IDM-VTON
-    console.log('Applying garment using IDM-VTON...');
-    // Add a 3 second delay to prevent Replicate's 429 Too Many Requests (burst limit)
-    await new Promise(resolve => setTimeout(resolve, 6000));
-    // Make sure garmentImage is a proper Data URI if it's base64
-    let garmInput = garmentImage;
-    if (!garmInput.startsWith('data:')) {
-      garmInput = `data:image/jpeg;base64,${garmInput}`;
-    }
-
-    const vtonOutput = await callReplicateWithRetry(
-      "yisol/idm-vton",
-      {
-        input: {
-          crop: false,
-          seed: 42,
-          steps: 30,
-          category: vtonCategory,
-          garm_img: garmInput,
-          human_img: humanImageUrl,
-          garment_des: "a beautiful garment"
-        }
-      }
-    ) as any;
-
-    if (!vtonOutput) {
-      throw new Error("Failed to map garment with IDM-VTON.");
-    }
-
-    console.log('VTON completed. Output:', vtonOutput);
-
-    // Fetch the result to return as base64 to bypass CORS issues on Canvas
-    const imgRes = await fetch(vtonOutput);
-    const arrayBuffer = await imgRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const finalBase64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
-
-    return NextResponse.json({ imageUrl: finalBase64 });
+    return NextResponse.json({
+      status: 'success',
+      imageUrl: finalImageUrl,
+      brandName,
+      promoText,
+    });
   } catch (error: any) {
-    console.error('Replicate error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to process image' }, { status: 500 });
+    console.error('Base64 Generation Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to generate image' }, { status: 500 });
   }
 }
