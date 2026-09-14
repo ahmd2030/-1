@@ -58,45 +58,44 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
-    // 1. Fetch available models for this specific API key
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const listData = await listRes.json();
+    const genAI = new GoogleGenerativeAI(apiKey);
     
-    let targetModelName = 'gemini-1.5-pro'; // Default fallback
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-pro-latest',
+      'gemini-pro-vision',
+      'gemini-1.0-pro-vision-latest'
+    ];
     
-    if (listData && listData.models) {
-      // Find the best model that supports generateContent
-      const availableModels = listData.models.map((m: any) => m.name.replace('models/', ''));
-      
-      if (availableModels.includes('gemini-1.5-pro')) {
-        targetModelName = 'gemini-1.5-pro';
-      } else if (availableModels.includes('gemini-1.5-flash')) {
-        targetModelName = 'gemini-1.5-flash';
-      } else if (availableModels.includes('gemini-1.5-pro-latest')) {
-        targetModelName = 'gemini-1.5-pro-latest';
-      } else if (availableModels.includes('gemini-1.5-flash-latest')) {
-        targetModelName = 'gemini-1.5-flash-latest';
-      } else if (availableModels.includes('gemini-pro-vision')) {
-        targetModelName = 'gemini-pro-vision';
-      } else {
-        // Just pick the first one that has "vision" or "1.5"
-        const fallback = availableModels.find((m: string) => m.includes('vision') || m.includes('1.5'));
-        if (fallback) targetModelName = fallback;
+    let result = null;
+    let allErrors = [];
+    
+    for (const m of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: m });
+        result = await model.generateContent([
+          systemPrompt,
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          }
+        ]);
+        // If it reaches here, it succeeded!
+        break;
+      } catch (e: any) {
+        // If it's a 429 quota error, we might want to still fail, but let's just log and continue
+        allErrors.push(m + ": " + (e.message || "Unknown error"));
       }
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: targetModelName });
-
-    const result = await model.generateContent([
-      systemPrompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: mimeType
-        }
-      }
-    ]);
+    
+    if (!result) {
+      console.error("All Gemini models failed:", allErrors);
+      return NextResponse.json({ error: "All Gemini models failed. Errors: " + allErrors.join(" | ") }, { status: 500 });
+    }
 
     const response = await result.response;
     const resultText = response.text();
