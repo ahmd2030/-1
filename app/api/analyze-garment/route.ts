@@ -88,7 +88,7 @@ FORMAT: You must respond in pure JSON.
       ]
     };
 
-    const modelsToTry = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const modelsToTry = ['gemini-1.5-pro', 'gemini-1.5-flash'];
     let data: any = null;
     let lastError = "";
 
@@ -106,9 +106,8 @@ FORMAT: You must respond in pure JSON.
         break; 
       } else {
         lastError = data.error?.message || `HTTP ${response.status}`;
-        if (!lastError.includes("not found")) {
-          break;
-        }
+        // Keep trying other models if one fails
+          console.log("Gemini Error with " + model + ":", lastError);
       }
     }
 
