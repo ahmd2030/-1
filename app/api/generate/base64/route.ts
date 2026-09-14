@@ -34,7 +34,29 @@ export async function POST(req: Request) {
     ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. 
     Soft natural skin texture, perfect lighting, full body shot.`;
 
-    const fluxOutput = await replicate.run(
+    
+    const callReplicateWithRetry = async (model: any, options: any, maxRetries = 10) => {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await replicate.run(model, options);
+        } catch (e: any) {
+          if (e.response && e.response.status === 429) {
+            console.log("Rate limited! Retrying in 5 seconds...");
+            await new Promise(r => setTimeout(r, 5000));
+            continue;
+          }
+          if (e.status === 429 || (e.message && e.message.includes('429'))) {
+             console.log("Rate limited! Retrying in 5 seconds...");
+             await new Promise(r => setTimeout(r, 5000));
+             continue;
+          }
+          throw e;
+        }
+      }
+      throw new Error("Max retries reached for Replicate API");
+    };
+
+    const fluxOutput = await callReplicateWithRetry(
       "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
       {
         input: {
@@ -77,7 +99,7 @@ export async function POST(req: Request) {
       garmInput = `data:image/jpeg;base64,${garmInput}`;
     }
 
-    const vtonOutput = await replicate.run(
+    const vtonOutput = await callReplicateWithRetry(
       "yisol/idm-vton:c02d9fac2614730240a50eda629ff2d109bb10bc4ce87c4850fa15fbe8e121b6",
       {
         input: {

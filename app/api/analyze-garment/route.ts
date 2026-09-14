@@ -88,7 +88,7 @@ FORMAT: You must respond in pure JSON.
       ]
     };
 
-    const modelsToTry = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+    const modelsToTry = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro'];
     let data: any = null;
     let lastError = "";
 
