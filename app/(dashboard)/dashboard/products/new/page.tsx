@@ -168,7 +168,7 @@ export default function AIStudioPage() {
     } catch(e: any) {
       console.error(e);
       setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
-      toast.error("تعذر تحليل الصورة آلياً (لكن يمكنك المتابعة بتوليد الصورة)");
+      toast.error("خطأ: " + (e.message || "تعذر التحليل"));
     } finally {
       setIsAnalyzing(false);
     }
