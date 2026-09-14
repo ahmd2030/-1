@@ -363,14 +363,28 @@ export default function AIStudioPage() {
         const genData = await genRes.json();
         if (genData.imageUrl) {
           const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
-          const newItem = { id: Math.random().toString(), cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc };
-          currentGallery = [newItem, ...currentGallery];
-          try {
-            localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery));
-          } catch(e) {
-            console.warn("Storage full, kept in RAM");
-          }
-          setGalleryImages([...currentGallery]); // trigger re-render
+            const newItem = { 
+              cleanUrl: genData.imageUrl, 
+              previewUrl: finalImageUrl, 
+              sizes: genSizes, 
+              sku: genSku, 
+              desc: genDesc,
+              userId: auth?.currentUser?.uid || 'anonymous',
+              createdAt: serverTimestamp()
+            };
+            let docId = Math.random().toString();
+            if (db) {
+              try {
+                const docRef = await addDoc(collection(db, "generated_images"), newItem);
+                docId = docRef.id;
+              } catch (e) { console.error("Firebase err", e); }
+            }
+            const finalItem = { id: docId, ...newItem, createdAt: new Date() };
+            currentGallery = [finalItem, ...currentGallery];
+            setGalleryImages([...currentGallery]);
+            try {
+              localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery.slice(0, 10)));
+            } catch(e) {}
             setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'done' } : s));
           } else if (genData.error) {
             throw new Error(genData.error);
@@ -486,14 +500,29 @@ export default function AIStudioPage() {
         toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
         const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
         
-        const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-        const newItem = { id: Math.random().toString(), cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc };
-        const updated = [newItem, ...existing];
-        try {
-          localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updated));
-        } catch(e) {
-          console.warn("Storage full, kept in RAM");
-        }
+          const newItem = { 
+            cleanUrl: data.imageUrl, 
+            previewUrl: finalImageUrl, 
+            sizes, 
+            sku: productCode, 
+            desc: marketingDesc,
+            userId: auth?.currentUser?.uid || 'anonymous',
+            createdAt: serverTimestamp()
+          };
+          let docId = Math.random().toString();
+          if (db) {
+            try {
+              const docRef = await addDoc(collection(db, "generated_images"), newItem);
+              docId = docRef.id;
+            } catch (e) { console.error("Firebase err", e); }
+          }
+          const finalItem = { id: docId, ...newItem, createdAt: new Date() };
+          
+          setGalleryImages(prev => [finalItem, ...prev]);
+          try {
+            const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
+            localStorage.setItem('ai_fashion_generated_images', JSON.stringify([finalItem, ...existing].slice(0, 10)));
+          } catch(e) {}
         setGalleryImages(updated);
         
         toast.success("تم التوليد والتصميم بنجاح!");
