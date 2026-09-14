@@ -1,4 +1,5 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
 
@@ -28,31 +29,19 @@ Instructions:
      "young girl" (for 6-12 years girl), "young boy" (for 6-12 years boy),
      "teen girl" (for 16 years girl), "teen boy" (for 16 years boy),
      "woman" (for adult females), "man" (for adult males).
-   - If the gender is ambiguous, default to the female variant.
+2. "prompt":
+   - Write a master-level, breathtaking, photorealistic fashion photography prompt for the model wearing this item.
+   - STRICT REQUIREMENT: Choose a varied, dynamic, real-world background location (e.g., 'a sun-drenched Italian villa', 'a rainy street in London', 'a luxury cafe in Paris'). DO NOT ALWAYS USE A STUDIO.
+   - End with: 'Natural, candid walking pose, smiling'.
+3. "extracted_size":
+   - Zoom in on any visible tags, labels, or text on the garment.
+   - If you see a size (like S, M, L, XL, 3-6M, 4Y, 120cm, etc.), return exactly that string. If nothing is found, return an empty string "".
+4. "extracted_sku":
+   - Zoom in on any visible text. If you see a product code, item number, or SKU (like DR-7729, ABC-123), return exactly that string. If nothing is found, return "".
+5. "marketing_desc":
+   - ${generateMarketingDesc ? "Write a short, elegant 2-sentence Arabic marketing description for this item to be placed on a fashion catalogue." : "Leave empty."}
 
-2. "prompt": 
-   - CRITICAL: IGNORE the original background in the image. Focus 100% on the CLOTHING.
-   - Act as a master color-theory expert. Analyze the clothing color/style and invent a highly creative, RANDOM background setting (e.g., Parisian street cafe, sunny beautiful beach, magical winter forest, luxury indoor studio, royal castle garden, aesthetic bedroom).
-   - ALWAYS pick a background that contrasts and complements the clothing color.
-   - Be extremely descriptive about the environment, weather, and lighting.
-   - CRITICAL: End the prompt with: "Model is STANDING UPRIGHT, walking or posing naturally on their feet. Full body is visible." NEVER suggest sitting or kneeling.
-   
-3. "extracted_size": 
-   - Look closely at ALL text written on the image (top left, tags, etc).
-   - Extract the exact clothing size (e.g., "3M", "0-12M", "S", "3 Years", "16").
-   - If there is NO text, GUESS the appropriate size based on proportions.
-
-4. "extracted_sku": 
-   - Look closely at ALL text written on the image (top left, tags, etc).
-   - Extract the exact product code (e.g., "V6118", "BR-123").
-   - If there is NO text, INVENT a random creative SKU.
-   
-${generateMarketingDesc ? `5. "marketing_desc":
-   - Write a short, highly engaging, elegant 1-2 sentence marketing description in ARABIC.
-` : `5. "marketing_desc":
-   - Return an empty string "".`}
-
-FORMAT: You must respond in pure JSON.
+FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
 {
   "extracted_category": "...",
   "prompt": "...",
@@ -63,78 +52,35 @@ FORMAT: You must respond in pure JSON.
 
     let base64Data = garmentImage;
     let mimeType = 'image/jpeg';
-    
-    if (garmentImage.includes(',')) {
-      const parts = garmentImage.split(',');
+    if (garmentImage.includes('base64,')) {
+      const parts = garmentImage.split('base64,');
       base64Data = parts[1];
       mimeType = parts[0].split(';')[0].split(':')[1] || 'image/jpeg';
     }
 
-    const payload = {
-      contents: [
-        {
-          parts: [
-            { text: systemPrompt },
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Data
-              }
-            }
-          ]
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const result = await model.generateContent([
+      systemPrompt,
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType
         }
-      ],
-      generationConfig: {
-        temperature: 0.2, 
-        responseMimeType: "application/json" 
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-      ]
-    };
-
-    const modelsToTry = ['gemini-1.5-pro']; // Only use the stable model to surface the exact error
-    let data: any = null;
-    let lastError = "";
-
-    for (const model of modelsToTry) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      data = await response.json();
-      
-      if (response.ok) {
-        lastError = "";
-        break; 
-      } else {
-        lastError = data.error?.message || `HTTP ${response.status}`;
-        // Keep trying other models if one fails
-          console.log("Gemini Error with " + model + ":", lastError);
       }
-    }
+    ]);
 
-    if (lastError) {
-      return NextResponse.json({ error: lastError }, { status: 503 });
-    }
-
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!resultText) {
-      const finishReason = data.candidates?.[0]?.finishReason;
-      if (finishReason) {
-         return NextResponse.json({ error: `Blocked by safety: ${finishReason}` }, { status: 400 });
-      }
-      return NextResponse.json({ error: "No suggestion returned from Gemini" }, { status: 500 });
-    }
+    const response = await result.response;
+    const resultText = response.text();
 
     let parsed;
     try {
-      let cleanText = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      let cleanText = resultText;
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanText = jsonMatch[0];
+      }
       parsed = JSON.parse(cleanText);
     } catch(e) {
       console.error("JSON Parse Error:", resultText);
