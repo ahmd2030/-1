@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     };
 
     const fluxOutput = await callReplicateWithRetry(
-      "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+      "stability-ai/sdxl",
       {
         input: {
           prompt: fluxPrompt,
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     const vtonOutput = await callReplicateWithRetry(
-      "yisol/idm-vton:c02d9fac2614730240a50eda629ff2d109bb10bc4ce87c4850fa15fbe8e121b6",
+      "yisol/idm-vton",
       {
         input: {
           crop: false,
