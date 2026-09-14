@@ -96,7 +96,7 @@ FORMAT: You must respond in pure JSON.
       ]
     };
 
-    const modelsToTry = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-pro-vision'];
+    const modelsToTry = ['gemini-1.5-pro']; // Only use the stable model to surface the exact error
     let data: any = null;
     let lastError = "";
 
