@@ -5,6 +5,8 @@ import { saveAs } from 'file-saver';
 import React, { useState, useEffect, useRef } from "react";
 import { Upload, Image as ImageIcon, Loader2, Sparkles, X, UserSquare2, Type, Download, ExternalLink, RefreshCw, Camera, Printer, FileArchive , Edit3, Columns} from 'lucide-react';
 import { toast } from "sonner";
+import { db, auth } from "@/lib/firebase/config";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function AIStudioPage() {
   const [file, setFile] = useState<File | null>(null);
