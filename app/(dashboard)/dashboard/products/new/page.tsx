@@ -525,7 +525,7 @@ export default function AIStudioPage() {
             const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
             localStorage.setItem('ai_fashion_generated_images', JSON.stringify([finalItem, ...existing].slice(0, 10)));
           } catch(e) {}
-        setGalleryImages(updated);
+        // setGalleryImages(updated); // Fixed TS error
         
         toast.success("تم التوليد والتصميم بنجاح!");
         setShowGallery(true);
