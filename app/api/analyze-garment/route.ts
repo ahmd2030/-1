@@ -63,13 +63,14 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
     let geminiSuccess = false;
     let allErrors = [];
 
-    // 1. Try Gemini with retry for 503 overload errors
+    // 1. Try Gemini First
     if (geminiKey) {
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
       
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (const m of modelsToTry) {
         try {
+          const model = genAI.getGenerativeModel({ model: m });
           const result = await model.generateContent([
             systemPrompt,
             { inlineData: { data: base64Data, mimeType: mimeType } }
@@ -79,13 +80,7 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
           geminiSuccess = true;
           break;
         } catch (e: any) {
-          const msg = e.message || "";
-          if (msg.includes("503") && attempt < 3) {
-            // Server overloaded, wait and retry
-            await new Promise(r => setTimeout(r, 2000 * attempt));
-            continue;
-          }
-          allErrors.push("Gemini: " + msg);
+          allErrors.push("Gemini " + m + ": " + (e.message || "error"));
         }
       }
     }
