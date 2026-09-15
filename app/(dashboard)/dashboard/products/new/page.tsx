@@ -59,32 +59,37 @@ export default function AIStudioPage() {
   }, []); // Fixed race condition that erased RAM images when storage is full
 
   const resizeImageForAnalysis = (dataUrl: string): Promise<string> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 1200; // Increased to preserve text readability for Gemini
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 1200;
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
           }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch (e) {
+          resolve(dataUrl); // Fallback to original
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
+      img.onerror = () => resolve(dataUrl);
       img.src = dataUrl;
     });
   };
@@ -257,41 +262,68 @@ export default function AIStudioPage() {
             }
           
           try {
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
-          } catch(e) {
-            console.error("Canvas CORS issue", e);
-            resolve(imageUrl); 
-          }
-        };
-        
-        if (base64Logo) {
-          const logoImg = new Image();
-          logoImg.onload = () => {
-            const logoWidth = img.width * 0.20; 
-            const aspect = logoImg.height / logoImg.width;
-            const logoHeight = logoWidth * aspect;
-            
-            ctx.shadowColor = "rgba(255,255,255,0.7)";
-            ctx.shadowBlur = 15;
-            ctx.drawImage(logoImg, padding, padding, logoWidth, logoHeight);
-            ctx.shadowBlur = 0;
-            
-            finishDrawingText();
-          };
-          logoImg.onerror = () => {
-            finishDrawingText();
-          };
-          logoImg.src = base64Logo;
-        } else {
-          ctx.fillStyle = "#ff6b81"; 
-          ctx.font = `italic bold ${img.width * 0.08}px Georgia, serif`;
-          ctx.textAlign = "left";
-          ctx.textBaseline = "top";
-          ctx.shadowColor = "rgba(255,255,255,0.8)";
-          ctx.shadowBlur = 10;
-          if (brandName) ctx.fillText(brandName, padding, padding);
+        try {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
           
-          finishDrawingText();
+          const padding = img.width * 0.05;
+          
+          const finishDrawingText = () => {
+            try {
+              ctx.fillStyle = "#1e293b"; 
+              ctx.font = `bold ${img.width * 0.05}px Arial, sans-serif`;
+              ctx.textAlign = "right";
+              ctx.textBaseline = "top";
+              ctx.shadowBlur = 0; 
+              
+              if (customCode) {
+                ctx.fillText(customCode, img.width - padding, padding);
+              }
+              
+              if (customSizes) {
+                ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
+                ctx.fillStyle = "#64748b";
+                ctx.fillText(customSizes, img.width - padding, padding + (img.width * 0.06));
+              }
+              
+              resolve(canvas.toDataURL('image/jpeg', 0.9));
+            } catch (e) {
+              console.error("Canvas text/toDataURL error:", e);
+              resolve(imageUrl);
+            }
+          };
+          
+          if (base64Logo) {
+            const logoImg = new Image();
+            logoImg.onload = () => {
+              try {
+                const logoWidth = img.width * 0.25;
+                const logoHeight = (logoImg.height / logoImg.width) * logoWidth;
+                ctx.drawImage(logoImg, padding, padding, logoWidth, logoHeight);
+                finishDrawingText();
+              } catch (e) {
+                finishDrawingText();
+              }
+            };
+            logoImg.onerror = () => finishDrawingText();
+            logoImg.src = base64Logo;
+          } else {
+            try {
+              ctx.fillStyle = "#ff6b81"; 
+              ctx.font = `italic bold ${img.width * 0.08}px Georgia, serif`;
+              ctx.textAlign = "left";
+              ctx.shadowColor = "rgba(0,0,0,0.1)";
+              ctx.shadowBlur = 10;
+              ctx.fillText(brandName || "FashionBrand", padding, padding);
+              finishDrawingText();
+            } catch (e) {
+              finishDrawingText();
+            }
+          }
+        } catch (e) {
+          console.error("Canvas drawImage error:", e);
+          resolve(imageUrl);
         }
       };
       
