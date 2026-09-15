@@ -1,4 +1,4 @@
-﻿import { AIProvider, AIGenerationOptions, AIGenerationResult } from './provider';
+import { AIProvider, AIGenerationOptions, AIGenerationResult } from './provider';
 
 export class FashnProvider implements AIProvider {
   name = 'fashn';
@@ -17,7 +17,7 @@ export class FashnProvider implements AIProvider {
       let categoryText = "garment";
       if (options.category === "tops") categoryText = "top/shirt/jacket";
       if (options.category === "bottoms") categoryText = "pants/skirt/bottoms";
-      if (options.category === "one-pieces") categoryText = "dress/jumpsuit/full outfit";
+      if (options.category === "one-pieces") categoryText = "dress/jumpsuit/matching two-piece outfit/full set";
 
       let subjectPrompt = options.modelType || 'person';
       const isFemale = subjectPrompt.includes('girl') || subjectPrompt === 'woman';
