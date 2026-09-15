@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -365,9 +365,8 @@ export default function AIStudioPage() {
         const genData = await genRes.json();
         if (genData.imageUrl) {
           const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
-            const newItem = { 
+            const firebaseItem = { 
               cleanUrl: genData.imageUrl, 
-              previewUrl: finalImageUrl, 
               sizes: genSizes, 
               sku: genSku, 
               desc: genDesc,
@@ -377,11 +376,11 @@ export default function AIStudioPage() {
             let docId = Math.random().toString();
             if (db) {
               try {
-                const docRef = await addDoc(collection(db, "generated_images"), newItem);
+                const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
                 docId = docRef.id;
               } catch (e) { console.error("Firebase err", e); }
             }
-            const finalItem = { id: docId, ...newItem, createdAt: new Date() };
+            const finalItem = { id: docId, cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc, createdAt: new Date() };
             currentGallery = [finalItem, ...currentGallery];
             setGalleryImages([...currentGallery]);
             try {
@@ -502,9 +501,8 @@ export default function AIStudioPage() {
         toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
         const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
         
-          const newItem = { 
+          const firebaseItem = { 
             cleanUrl: data.imageUrl, 
-            previewUrl: finalImageUrl, 
             sizes, 
             sku: productCode, 
             desc: marketingDesc,
@@ -514,11 +512,11 @@ export default function AIStudioPage() {
           let docId = Math.random().toString();
           if (db) {
             try {
-              const docRef = await addDoc(collection(db, "generated_images"), newItem);
+              const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
               docId = docRef.id;
             } catch (e) { console.error("Firebase err", e); }
           }
-          const finalItem = { id: docId, ...newItem, createdAt: new Date() };
+          const finalItem = { id: docId, cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc, createdAt: new Date() };
           
           setGalleryImages(prev => [finalItem, ...prev]);
           try {

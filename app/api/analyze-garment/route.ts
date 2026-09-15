@@ -65,23 +65,18 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
 
     // 1. Try Gemini First
     if (geminiKey) {
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
-      
-      for (const m of modelsToTry) {
-        try {
-          const model = genAI.getGenerativeModel({ model: m });
-          const result = await model.generateContent([
-            systemPrompt,
-            { inlineData: { data: base64Data, mimeType: mimeType } }
-          ]);
-          const response = await result.response;
-          resultText = response.text();
-          geminiSuccess = true;
-          break;
-        } catch (e: any) {
-          allErrors.push("Gemini " + m + ": " + (e.message || "error"));
-        }
+      try {
+        const genAI = new GoogleGenerativeAI(geminiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+        const result = await model.generateContent([
+          systemPrompt,
+          { inlineData: { data: base64Data, mimeType: mimeType } }
+        ]);
+        const response = await result.response;
+        resultText = response.text();
+        geminiSuccess = true;
+      } catch (e: any) {
+        allErrors.push("Gemini: " + (e.message || "error"));
       }
     }
 
