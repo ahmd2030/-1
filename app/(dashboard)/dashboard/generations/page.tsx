@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { db, auth } from "@/lib/firebase/config";
@@ -14,19 +14,19 @@ export default function GenerationsPage() {
     const fetchImages = async () => {
       try {
         if (!db) {
+          console.log("No Firebase DB configured");
           setLoading(false);
           return;
         }
-        // Fetch logic
-        const uid = auth?.currentUser?.uid || 'anonymous';
-        const q = query(
-          collection(db, "generated_images"),
-          // where("userId", "==", uid), // Removed to avoid composite index requirements for now
-          orderBy("createdAt", "desc")
-        );
-        
+        const q = query(collection(db, "generated_images"));
         const querySnapshot = await getDocs(q);
         const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort client-side (newest first) to avoid Firestore index requirements
+        fetched.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
         setImages(fetched);
       } catch (error) {
         console.error("Error fetching images:", error);
@@ -35,16 +35,7 @@ export default function GenerationsPage() {
       }
     };
 
-    // Sometimes auth takes a second to initialize, so we listen to auth state
-    const unsubscribe = auth?.onAuthStateChanged(() => {
-      fetchImages();
-    });
-    
     fetchImages();
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
   }, []);
 
   const handleDownload = async (url: string, name: string) => {
