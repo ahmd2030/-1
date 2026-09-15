@@ -66,7 +66,7 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
     // 1. Try Gemini First
     if (geminiKey) {
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.5-flash'];
       
       for (const m of modelsToTry) {
         try {
