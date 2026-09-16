@@ -28,7 +28,11 @@ export async function GET(request: Request) {
           status: 'completed'
         });
       } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
-        throw new Error(prediction.error ? String(prediction.error) : 'Replicate prediction failed');
+        return NextResponse.json({
+          id,
+          status: 'failed',
+          error: prediction.error ? String(prediction.error) : 'Replicate prediction failed'
+        });
       }
       
       return NextResponse.json({

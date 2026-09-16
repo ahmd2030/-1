@@ -510,7 +510,7 @@ export default function AIStudioPage() {
           return data;
         }
         if (data.status === 'failed' || data.error) {
-          throw new Error(data.error || 'Generation failed');
+          return data; // Return the failed data immediately so caller can handle it without retrying
         }
       } catch (err: any) {
         lastError = err.message;
