@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { FashnProvider } from '@/lib/ai/fashn';
 
 export const maxDuration = 60;
@@ -34,22 +34,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    const hostedGarmentUrl = await uploadToHost(garmentImage);
+    // Try passing base64 directly to Fashn (most AI APIs support Data URIs)
+    const hostedGarmentUrl = garmentImage;
     let hostedModelUrl = undefined;
-
-    if (modelImage) {
-      hostedModelUrl = await uploadToHost(modelImage);
-    }
-
     const provider = new FashnProvider();
+    let result;
     
-    const result = await provider.generate({
-      garmentImage: hostedGarmentUrl,
-      modelImage: hostedModelUrl,
-      category: category || 'tops',
-      modelType,
-      style,
-    });
+    try {
+      // Fast path: direct base64
+      result = await provider.generate({
+        garmentImage: garmentImage,
+        modelImage: modelImage,
+        category: category || 'tops',
+        modelType,
+        style,
+      });
+    } catch (fastPathError: any) {
+      console.warn("Fast path failed (Fashn might not support this base64), falling back to freeimage.host:", fastPathError);
+      // Slow path: upload to host first
+      const hostedGarmentUrl = await uploadToHost(garmentImage);
+      let hostedModelUrl = undefined;
+      if (modelImage) {
+        hostedModelUrl = await uploadToHost(modelImage);
+      }
+      
+      result = await provider.generate({
+        garmentImage: hostedGarmentUrl,
+        modelImage: hostedModelUrl,
+        category: category || 'tops',
+        modelType,
+        style,
+      });
+    }
 
     // Proxy the image to base64 to avoid Canvas CORS issues on the client
     let finalImageUrl = result.imageUrl;
