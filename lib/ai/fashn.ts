@@ -115,10 +115,15 @@ export class FashnProvider implements AIProvider {
     const response = await fetch(`https://api.fashn.ai/v1/status/${id}`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-      }
+      },
+      cache: 'no-store'
     });
     
-    if (!response.ok) throw new Error('Failed to poll FASHN status');
+    if (!response.ok) {
+      const errTxt = await response.text();
+      console.error('Fashn status error:', errTxt);
+      throw new Error(`Failed to poll FASHN status: ${response.status}`);
+    }
     
     const data = await response.json();
     

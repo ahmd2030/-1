@@ -485,23 +485,31 @@ export default function AIStudioPage() {
 
   async function pollStatus(id: string): Promise<any> {
     let attempts = 0;
+    let lastError = '';
     while (attempts < 60) {
       await new Promise(resolve => setTimeout(resolve, 3000));
-      const statusRes = await fetch(`/api/generate/status?id=${id}`);
-      if (!statusRes.ok) {
-        const err = await statusRes.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to check status');
-      }
-      const data = await statusRes.json();
-      if (data.status === 'completed' && data.imageUrl) {
-        return data;
-      }
-      if (data.status === 'failed' || data.error) {
-        throw new Error(data.error || 'Generation failed');
+      try {
+        const statusRes = await fetch(`/api/generate/status?id=${id}`);
+        if (!statusRes.ok) {
+          const text = await statusRes.text();
+          console.error("Status route failed:", text);
+          throw new Error(`Server Error: ${statusRes.status}`);
+        }
+        
+        const data = await statusRes.json();
+        if (data.status === 'completed' && data.imageUrl) {
+          return data;
+        }
+        if (data.status === 'failed' || data.error) {
+          throw new Error(data.error || 'Generation failed');
+        }
+      } catch (err: any) {
+        lastError = err.message;
+        console.warn("Poll attempt failed, retrying...", err);
       }
       attempts++;
     }
-    throw new Error('Generation timed out');
+    throw new Error(`Generation timed out. Last error: ${lastError}`);
   };
 
   const handleGenerate = async () => {
