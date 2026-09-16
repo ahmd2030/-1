@@ -118,6 +118,36 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       }
     }
 
+    // 3. Fallback to Replicate Llava-13b if both Gemini and OpenAI failed
+    if (!resultText && process.env.REPLICATE_API_TOKEN) {
+      try {
+        const Replicate = (await import('replicate')).default;
+        const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+        
+        const prediction = await replicate.predictions.create({
+          version: "b5f621afbfedfa16f0ca582f3a61c4728f32ac171b3052a654949a263690d565",
+          input: {
+            image: `data:${mimeType};base64,${base64Data}`,
+            prompt: systemPrompt
+          }
+        });
+        
+        let finalPrediction = prediction;
+        while (finalPrediction.status !== 'succeeded' && finalPrediction.status !== 'failed' && finalPrediction.status !== 'canceled') {
+          await new Promise(r => setTimeout(r, 2000));
+          finalPrediction = await replicate.predictions.get(prediction.id);
+        }
+        
+        if (finalPrediction.status === 'succeeded' && finalPrediction.output) {
+          resultText = Array.isArray(finalPrediction.output) ? finalPrediction.output.join("") : finalPrediction.output;
+        } else {
+          allErrors.push("Replicate: " + finalPrediction.error);
+        }
+      } catch (e: any) {
+        allErrors.push("Replicate: " + (e.message || "error"));
+      }
+    }
+
     if (!resultText) {
       return NextResponse.json({ error: "All AI models failed. Errors: " + allErrors.join(" | ") }, { status: 500 });
     }
