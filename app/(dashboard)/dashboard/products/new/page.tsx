@@ -114,15 +114,16 @@ export default function AIStudioPage() {
       setQueue([]);
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        if (event.target?.result) {
-          const b64 = event.target.result as string;
-          setBase64Image(b64);
-          analyzeGarment(b64);
-        }
-      };
+            const reader = new FileReader();
+        reader.onload = async (event) => {
+          if (event.target?.result) {
+            const b64 = event.target.result as string;
+            // Optimize image before sending it to Gemini AND Replicate to prevent huge payload timeouts
+            const optimized = await resizeImageForAnalysis(b64);
+            setBase64Image(optimized);
+            analyzeGarment(optimized);
+          }
+        };
       reader.readAsDataURL(selectedFile);
     }
   };
@@ -486,7 +487,7 @@ export default function AIStudioPage() {
   async function pollStatus(id: string, provider: string = "fashn"): Promise<any> {
     let attempts = 0;
     let lastError = '';
-    while (attempts < 120) { // 6 minutes maximum
+    while (attempts < 200) { // 10 minutes maximum
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       if (attempts === 15) {
@@ -521,7 +522,7 @@ export default function AIStudioPage() {
       }
       attempts++;
     }
-    throw new Error(lastError || "Generation timed out after 6 minutes.");
+    throw new Error(lastError || "Generation timed out after 10 minutes.");
   }
 
   const handleGenerate = async () => {
