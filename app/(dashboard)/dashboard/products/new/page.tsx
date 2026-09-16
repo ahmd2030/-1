@@ -510,16 +510,19 @@ export default function AIStudioPage() {
           return data;
         }
         if (data.status === 'failed' || data.error) {
-          return data; // Return the failed data immediately so caller can handle it without retrying
+          throw new Error(data.error || 'Generation failed'); // Throwing here allows the caller's try-catch to show the error
         }
       } catch (err: any) {
+        if (err.message && err.message !== 'Generation failed' && !err.message.includes('Server Error')) {
+            throw err;
+        }
         lastError = err.message;
         console.warn("Poll attempt failed, retrying...", err);
       }
       attempts++;
     }
-    throw new Error(`Generation timed out. Last error: ${lastError}`);
-  };
+    throw new Error(lastError || "Generation timed out after 6 minutes.");
+  }
 
   const handleGenerate = async () => {
     if (!base64Image) {
@@ -560,7 +563,7 @@ export default function AIStudioPage() {
       }
       
       // Step 2: Apply Garment (VTON)
-      toast.success("يتم الآن إلباس العارض وتطبيق الإضاءة (المرحلة 2 من 2)...", { duration: 5000 });
+      toast.success("يتم الآن إلباس العارض وتطبيق الإضاءة (المرحلة 2 من 2)... قد يستغرق الأمر بضع دقائق إذا كان الخادم في وضع السكون.", { duration: 8000 });
       const vtonRes = await fetch('/api/generate/base64', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -994,7 +997,7 @@ export default function AIStudioPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد والتصميم (قد يستغرق 30 ثانية)...'}</span>
+                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد (قد يستغرق 3 دقائق)...'}</span>
                 </>
               ) : (
                 <>
