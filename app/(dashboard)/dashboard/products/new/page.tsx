@@ -205,6 +205,7 @@ export default function AIStudioPage() {
       
       const img = new Image();
       img.crossOrigin = "anonymous";
+      img.onerror = () => resolve(imageUrl);
       img.onload = () => {
         try {
           canvas.width = img.width;
@@ -383,10 +384,14 @@ export default function AIStudioPage() {
           genData = await pollStatus(genData.id);
         }
 
-        if (genData.imageUrl) {
-          const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
-            const firebaseItem = { 
-              cleanUrl: genData.imageUrl, 
+          if (genData.imageUrl) {
+            let safeImageUrl = genData.imageUrl;
+            if (genData.provider === 'replicate' || genData.imageUrl.includes('replicate.delivery')) {
+              safeImageUrl = `/api/proxy-image?url=${encodeURIComponent(genData.imageUrl)}`;
+            }
+            const finalImageUrl = await applyCatalogueOverlay(safeImageUrl, genSizes, genSku, genDesc);
+              const firebaseItem = { 
+                cleanUrl: safeImageUrl, 
               sizes: genSizes, 
               sku: genSku, 
               desc: genDesc,
@@ -441,6 +446,10 @@ export default function AIStudioPage() {
         return new Promise((resolve) => {
           const img = new Image();
           img.crossOrigin = "anonymous";
+          img.onerror = () => {
+            console.warn("Canvas CORS error, returning original image");
+            resolve(src as any);
+          };
           img.onload = () => resolve(img);
           img.src = src;
         });
@@ -587,13 +596,12 @@ export default function AIStudioPage() {
       
       if (data.imageUrl) {
         toast.success("تم التوليد، جاري تصميم غلاف الكتالوج...");
-        // Replicate sometimes returns URLs that cause Canvas CORS issues, proxy it
-        let safeImageUrl = data.imageUrl;
-        try {
-           // We can just use the original URL, if it fails canvas error handler will catch it
-        } catch(e) {}
-        
-        const finalImageUrl = await applyCatalogueOverlay(safeImageUrl, sizes, productCode, marketingDesc);
+          let safeImageUrl = data.imageUrl;
+          if (data.provider === 'replicate' || data.imageUrl.includes('replicate.delivery')) {
+            safeImageUrl = `/api/proxy-image?url=${encodeURIComponent(data.imageUrl)}`;
+          }
+          
+          const finalImageUrl = await applyCatalogueOverlay(safeImageUrl, sizes, productCode, marketingDesc);
         
           const firebaseItem = { 
             cleanUrl: safeImageUrl, 
