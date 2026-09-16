@@ -11,18 +11,29 @@ async function uploadToHost(base64Image: string) {
   uploadFormData.append('source', base64Data);
   uploadFormData.append('format', 'json');
 
-  const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
-    method: 'POST',
-    body: uploadFormData,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds max
 
-  if (!uploadRes.ok) {
-    throw new Error('Failed to upload image to temporary host');
+  try {
+    const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: uploadFormData,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload image to temporary host');
+    }
+
+    const uploadData = await uploadRes.json();
+    return uploadData.image.url;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw new Error('Image upload to host timed out or failed');
   }
-
-  const uploadData = await uploadRes.json();
-  return uploadData.image.url;
 }
 
 export async function POST(request: Request) {

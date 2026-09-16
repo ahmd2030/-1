@@ -486,10 +486,19 @@ export default function AIStudioPage() {
   async function pollStatus(id: string): Promise<any> {
     let attempts = 0;
     let lastError = '';
-    while (attempts < 60) {
+    while (attempts < 120) { // 6 minutes maximum
       await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      if (attempts === 15) {
+        toast("لا زال التوليد مستمراً، الخوادم مزدحمة قليلاً اليوم...", { icon: '⏳', duration: 4000 });
+      } else if (attempts === 30) {
+        toast("الرجاء الانتظار، الذكاء الاصطناعي يقوم ببناء تفاصيل واقعية جداً...", { icon: '🎨', duration: 4000 });
+      } else if (attempts === 60) {
+        toast("التوليد يأخذ وقتاً أطول من المعتاد بسبب الضغط على السيرفرات العالمية...", { icon: '🌍', duration: 4000 });
+      }
+
       try {
-        const statusRes = await fetch(`/api/generate/status?id=${id}`);
+        const statusRes = await fetch(`/api/generate/status?id=${id}&t=${Date.now()}`, { cache: 'no-store' });
         if (!statusRes.ok) {
           const text = await statusRes.text();
           console.error("Status route failed:", text);
