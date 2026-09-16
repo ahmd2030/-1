@@ -483,7 +483,7 @@ export default function AIStudioPage() {
     }
   };
 
-  async function pollStatus(id: string): Promise<any> {
+  async function pollStatus(id: string, provider: string = "fashn"): Promise<any> {
     let attempts = 0;
     let lastError = '';
     while (attempts < 120) { // 6 minutes maximum
@@ -498,7 +498,7 @@ export default function AIStudioPage() {
       }
 
       try {
-        const statusRes = await fetch(`/api/generate/status?id=${id}&t=${Date.now()}`, { cache: 'no-store' });
+        const statusRes = await fetch(`/api/generate/status?id=${id}&provider=${provider}&t=${Date.now()}`, { cache: 'no-store' });
         if (!statusRes.ok) {
           const text = await statusRes.text();
           console.error("Status route failed:", text);
@@ -535,36 +535,64 @@ export default function AIStudioPage() {
         ? `Model is facing backwards, walking away from the camera, showing the BACK of the garment. ${stylePrompt}`
         : stylePrompt;
 
-      const res = await fetch('/api/generate/base64', {
+      let humanUrl = base64ModelImage;
+      
+      // Step 1: Generate Human Model (if no model provided)
+      if (!humanUrl) {
+        toast.success("يتم الآن تصميم العارض البشري (المرحلة 1 من 2)...", { duration: 4000 });
+        const fluxRes = await fetch('/api/generate/base64', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            replicateStep: 1,
+            modelType,
+            style: finalPrompt,
+          })
+        });
+        
+        let fluxData = await fluxRes.json();
+        if (fluxData.error) throw new Error(fluxData.error);
+        
+        if (fluxData.id && fluxData.status === 'processing') {
+          fluxData = await pollStatus(fluxData.id, fluxData.provider);
+        }
+        humanUrl = fluxData.imageUrl;
+      }
+      
+      // Step 2: Apply Garment (VTON)
+      toast.success("يتم الآن إلباس العارض وتطبيق الإضاءة (المرحلة 2 من 2)...", { duration: 5000 });
+      const vtonRes = await fetch('/api/generate/base64', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'ready_to_generate',
+          replicateStep: 2,
           garmentImage: base64Image,
-          modelImage: base64ModelImage,
+          humanImageUrl: humanUrl,
           modelType,
           category,
           style: finalPrompt,
         })
       });
       
-      let data = await res.json();
+      let data = await vtonRes.json();
+      if (data.error) throw new Error(data.error);
       
       if (data.id && data.status === 'processing') {
-        toast.success("تم بدء التوليد، يرجى الانتظار (قد يستغرق 40-60 ثانية)...", { duration: 5000 });
-        data = await pollStatus(data.id);
+        data = await pollStatus(data.id, data.provider);
       }
       
-      if (data.error) {
-        setError(data.error);
-        toast.error("حدث خطأ أثناء التوليد");
-      } else if (data.imageUrl) {
+      if (data.imageUrl) {
+        toast.success("تم التوليد، جاري تصميم غلاف الكتالوج...");
+        // Replicate sometimes returns URLs that cause Canvas CORS issues, proxy it
+        let safeImageUrl = data.imageUrl;
+        try {
+           // We can just use the original URL, if it fails canvas error handler will catch it
+        } catch(e) {}
         
-        toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
-        const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
+        const finalImageUrl = await applyCatalogueOverlay(safeImageUrl, sizes, productCode, marketingDesc);
         
           const firebaseItem = { 
-            cleanUrl: data.imageUrl, 
+            cleanUrl: safeImageUrl, 
             sizes, 
             sku: productCode, 
             desc: marketingDesc,
@@ -578,20 +606,20 @@ export default function AIStudioPage() {
               docId = docRef.id;
             } catch (e) { console.error("Firebase err", e); }
           }
-          const finalItem = { id: docId, cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc, createdAt: new Date() };
+          const finalItem = { id: docId, cleanUrl: safeImageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc, createdAt: new Date() };
           
-          setGalleryImages(prev => [finalItem, ...prev]);
+          let currentGallery = galleryImages || [];
+          currentGallery = [finalItem, ...currentGallery];
+          setGalleryImages([...currentGallery]);
           try {
-            const existing = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
-            localStorage.setItem('ai_fashion_generated_images', JSON.stringify([finalItem, ...existing].slice(0, 10)));
+            localStorage.setItem('ai_fashion_generated_images', JSON.stringify(currentGallery.slice(0, 10)));
           } catch(e) {}
-        // setGalleryImages(updated); // Fixed TS error
-        
-        toast.success("تم التوليد والتصميم بنجاح!");
-        setShowGallery(true);
+          
+          toast.success("تم الحفظ بنجاح!");
       }
     } catch (e: any) {
       setError(e.message || "حدث خطأ غير متوقع");
+      toast.error("فشل التوليد");
     } finally {
       setLoading(false);
     }

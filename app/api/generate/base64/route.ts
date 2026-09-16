@@ -1,79 +1,81 @@
 import { NextResponse } from 'next/server';
-import { ReplicateProvider } from '@/lib/ai/replicate';
+import Replicate from 'replicate';
 
 export const maxDuration = 60;
-
-async function uploadToHost(base64Image: string) {
-  const base64Data = base64Image.split(',')[1];
-  const uploadFormData = new URLSearchParams();
-  uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
-  uploadFormData.append('action', 'upload');
-  uploadFormData.append('source', base64Data);
-  uploadFormData.append('format', 'json');
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); 
-
-  try {
-    const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
-      method: 'POST',
-      body: uploadFormData,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    if (!uploadRes.ok) throw new Error('Failed to upload image');
-    const uploadData = await uploadRes.json();
-    return uploadData.image.url;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw new Error('Image upload to host timed out or failed');
-  }
-}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { garmentImage, modelImage, modelType, style, category, brandName, promoText } = body;
+    const { garmentImage, modelImage, modelType, style, category, replicateStep, humanImageUrl } = body;
 
-    if (!garmentImage) {
-      return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
+    const apiKey = process.env.REPLICATE_API_TOKEN;
+    if (!apiKey) throw new Error('REPLICATE_API_TOKEN is not configured');
+    const replicate = new Replicate({ auth: apiKey });
+
+    // Ensure garmentImage is properly formatted if used
+    let garmInput = garmentImage;
+    if (garmInput && !garmInput.startsWith('data:') && !garmInput.startsWith('http')) {
+      garmInput = \data:image/jpeg;base64,\\;
     }
 
-    const provider = new ReplicateProvider();
-    let result;
-    
-    try {
-      result = await provider.generate({
-        garmentImage: garmentImage,
-        modelImage: modelImage,
-        category: category || 'tops',
-        modelType,
-        style,
-        returnIdOnly: false // Replicate is sync, we don't need polling
-      });
-    } catch (fastPathError: any) {
-      console.warn("Fast path failed (Replicate might not support this base64), falling back to freeimage.host:", fastPathError);
-      const hostedGarmentUrl = await uploadToHost(garmentImage);
-      let hostedModelUrl = undefined;
-      if (modelImage) {
-        hostedModelUrl = await uploadToHost(modelImage);
+    if (replicateStep === 1) {
+      // Step 1: Generate Human Model using FLUX
+      let subjectPrompt = modelType || 'person';
+      if (modelType && (modelType.includes('girl') || modelType === 'woman')) {
+        subjectPrompt += ' with long beautiful hair';
       }
       
-      result = await provider.generate({
-        garmentImage: hostedGarmentUrl,
-        modelImage: hostedModelUrl,
-        category: category || 'tops',
-        modelType,
-        style,
-        returnIdOnly: false
+      const fluxPrompt = \A hyper-realistic, raw DSLR masterpiece portrait of \, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: \. Soft natural skin texture, perfect lighting, full body shot.\;
+      
+      console.log("Creating FLUX prediction...");
+      const prediction = await replicate.predictions.create({
+        version: "black-forest-labs/flux-schnell",
+        input: {
+          prompt: fluxPrompt,
+          aspect_ratio: "3:4",
+          output_format: "png",
+          num_outputs: 1
+        }
+      });
+      
+      return NextResponse.json({
+        id: prediction.id,
+        provider: 'replicate',
+        stage: 'flux',
+        status: 'processing'
+      });
+    } 
+    else if (replicateStep === 2) {
+      // Step 2: Apply Garment using IDM-VTON
+      let vtonCategory = "upper_body";
+      if (category === "bottoms") vtonCategory = "lower_body";
+      if (category === "one-pieces") vtonCategory = "dresses";
+      
+      console.log("Creating IDM-VTON prediction...");
+      const prediction = await replicate.predictions.create({
+        version: "yisol/idm-vton:c02d9fac2614730240a50eda629ff2d109bb10bc4ce87c4850fa15fbe8e121b6",
+        input: {
+          crop: false,
+          seed: 42,
+          steps: 30,
+          category: vtonCategory,
+          garm_img: garmInput,
+          human_img: humanImageUrl || modelImage,
+          garment_des: "a beautiful fashion garment"
+        }
+      });
+      
+      return NextResponse.json({
+        id: prediction.id,
+        provider: 'replicate',
+        stage: 'vton',
+        status: 'processing'
       });
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({ error: 'Invalid step' }, { status: 400 });
   } catch (error: any) {
-    console.error('Base64 Generation Error:', error);
+    console.error('Generation Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to generate image' }, { status: 500 });
   }
 }
