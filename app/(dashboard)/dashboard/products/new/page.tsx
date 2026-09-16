@@ -376,7 +376,12 @@ export default function AIStudioPage() {
           })
         });
         
-        const genData = await genRes.json();
+        let genData = await genRes.json();
+        
+        if (genData.id && genData.status === 'processing') {
+          genData = await pollStatus(genData.id);
+        }
+
         if (genData.imageUrl) {
           const finalImageUrl = await applyCatalogueOverlay(genData.imageUrl, genSizes, genSku, genDesc);
             const firebaseItem = { 
@@ -478,9 +483,30 @@ export default function AIStudioPage() {
     }
   };
 
+  async function pollStatus(id: string): Promise<any> {
+    let attempts = 0;
+    while (attempts < 60) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const statusRes = await fetch(`/api/generate/status?id=${id}`);
+      if (!statusRes.ok) {
+        const err = await statusRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to check status');
+      }
+      const data = await statusRes.json();
+      if (data.status === 'completed' && data.imageUrl) {
+        return data;
+      }
+      if (data.status === 'failed' || data.error) {
+        throw new Error(data.error || 'Generation failed');
+      }
+      attempts++;
+    }
+    throw new Error('Generation timed out');
+  };
+
   const handleGenerate = async () => {
     if (!base64Image) {
-      toast.error("الرجاء رفع صورة المنتج أولاً");
+      toast.error("الرجاء رفع صورة للمنتج أولاً");
       return;
     }
     
@@ -505,7 +531,12 @@ export default function AIStudioPage() {
         })
       });
       
-      const data = await res.json();
+      let data = await res.json();
+      
+      if (data.id && data.status === 'processing') {
+        toast.success("تم بدء التوليد، يرجى الانتظار (قد يستغرق 40-60 ثانية)...", { duration: 5000 });
+        data = await pollStatus(data.id);
+      }
       
       if (data.error) {
         setError(data.error);

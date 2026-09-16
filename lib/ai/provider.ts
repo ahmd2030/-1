@@ -8,18 +8,20 @@ export interface AIGenerationOptions {
   background?: string;
   style?: string;
   resolution?: 'fast' | 'high' | 'ultra';
+  returnIdOnly?: boolean; // New flag for async generation
 }
 
 export interface AIGenerationResult {
   id: string;
-  imageUrl: string;
+  imageUrl?: string;
   provider: string;
   model: string;
   cost: number;
+  status?: 'processing' | 'completed' | 'failed';
 }
 
 export interface AIProvider {
   name: string;
   generate(options: AIGenerationOptions): Promise<AIGenerationResult>;
-  getStatus?(id: string): Promise<AIGenerationResult | { status: 'processing' }>;
+  getStatus?(id: string): Promise<AIGenerationResult>;
 }

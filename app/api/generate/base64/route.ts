@@ -34,24 +34,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    // Try passing base64 directly to Fashn (most AI APIs support Data URIs)
-    const hostedGarmentUrl = garmentImage;
-    let hostedModelUrl = undefined;
     const provider = new FashnProvider();
     let result;
     
     try {
-      // Fast path: direct base64
       result = await provider.generate({
         garmentImage: garmentImage,
         modelImage: modelImage,
         category: category || 'tops',
         modelType,
         style,
+        returnIdOnly: true
       });
     } catch (fastPathError: any) {
-      console.warn("Fast path failed (Fashn might not support this base64), falling back to freeimage.host:", fastPathError);
-      // Slow path: upload to host first
+      console.warn("Fast path failed, falling back to freeimage.host:", fastPathError);
       const hostedGarmentUrl = await uploadToHost(garmentImage);
       let hostedModelUrl = undefined;
       if (modelImage) {
@@ -64,29 +60,11 @@ export async function POST(request: Request) {
         category: category || 'tops',
         modelType,
         style,
+        returnIdOnly: true
       });
     }
 
-    // Proxy the image to base64 to avoid Canvas CORS issues on the client
-    let finalImageUrl = result.imageUrl;
-    try {
-      const imgRes = await fetch(result.imageUrl);
-      if (imgRes.ok) {
-        const arrayBuffer = await imgRes.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
-        finalImageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
-      }
-    } catch (e) {
-      console.error('Failed to proxy image to base64:', e);
-    }
-
-    return NextResponse.json({
-      status: 'success',
-      imageUrl: finalImageUrl,
-      brandName,
-      promoText,
-    });
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Base64 Generation Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to generate image' }, { status: 500 });

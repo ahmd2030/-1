@@ -5,13 +5,9 @@ export class FashnProvider implements AIProvider {
 
   async generate(options: AIGenerationOptions): Promise<AIGenerationResult> {
     const apiKey = process.env.FASHN_API_KEY;
-    if (!apiKey) {
-      throw new Error('FASHN_API_KEY is not configured');
-    }
+    if (!apiKey) throw new Error('FASHN_API_KEY is not configured');
 
     try {
-      console.log('Calling FASHN API...');
-      
       const modelName = options.modelImage ? 'tryon-max' : 'product-to-model';
       
       let categoryText = "garment";
@@ -69,15 +65,23 @@ export class FashnProvider implements AIProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('FASHN API Error Details:', errorText);
         throw new Error(`FASHN API Error: ${errorText}`);
       }
 
       const data = await response.json();
       
       if (data.error) {
-        console.error('FASHN returned error:', data.error);
         throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+      }
+
+      if (options.returnIdOnly && data.id) {
+        return {
+          id: data.id,
+          provider: 'fashn',
+          model: modelName,
+          cost: 1,
+          status: 'processing'
+        };
       }
 
       if (data.id) {
@@ -87,7 +91,6 @@ export class FashnProvider implements AIProvider {
       const outputUrl = data.output?.[0] || data.image_url;
       
       if (!outputUrl) {
-        console.error('Unexpected FASHN response:', data);
         throw new Error('Invalid response format from FASHN API');
       }
 
@@ -97,11 +100,48 @@ export class FashnProvider implements AIProvider {
         provider: 'fashn',
         model: modelName,
         cost: 1,
+        status: 'completed'
       };
     } catch (error) {
       console.error('Fashn Provider Error:', error);
       throw error;
     }
+  }
+
+  async getStatus(id: string): Promise<AIGenerationResult> {
+    const apiKey = process.env.FASHN_API_KEY;
+    if (!apiKey) throw new Error('FASHN_API_KEY is not configured');
+
+    const response = await fetch(`https://api.fashn.ai/v1/status/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      }
+    });
+    
+    if (!response.ok) throw new Error('Failed to poll FASHN status');
+    
+    const data = await response.json();
+    
+    if (data.status === 'completed' || data.status === 'succeeded') {
+      return {
+        id: id,
+        imageUrl: data.output?.[0] || data.image_url,
+        provider: 'fashn',
+        model: 'tryon-max',
+        cost: 1,
+        status: 'completed'
+      };
+    } else if (data.status === 'failed' || data.error) {
+      throw new Error(data.error?.message || data.error || 'Generation failed');
+    }
+    
+    return {
+      id: id,
+      provider: 'fashn',
+      model: 'tryon-max',
+      cost: 1,
+      status: 'processing'
+    };
   }
 
   private async pollStatus(id: string, apiKey: string): Promise<AIGenerationResult> {
