@@ -1,38 +1,7 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
-
-async function uploadToHost(base64Image: string) {
-  try {
-    const parts = base64Image.split(';');
-    const mimeMatch = parts[0].match(/:(.*?)$/);
-    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-    const ext = mimeType.split('/')[1] || 'jpg';
-    const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
-    
-    const buffer = Buffer.from(base64Data, 'base64');
-    const formData = new FormData();
-    formData.append('reqtype', 'fileupload');
-    formData.append('fileToUpload', new Blob([buffer], { type: mimeType }), 'image.' + ext);
-
-    const uploadRes = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!uploadRes.ok) {
-      throw new Error('Failed to upload image to catbox');
-    }
-
-    const url = await uploadRes.text();
-    return url;
-  } catch (e) {
-    console.error("uploadToHost error:", e);
-    return base64Image; // fallback to base64 if upload fails
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -82,17 +51,7 @@ export async function POST(request: Request) {
       if (category === "bottoms") vtonCategory = "lower_body";
       if (category === "one-pieces") vtonCategory = "dresses";
       
-      let garmInput = garmentImage;
-      if (garmentImage && garmentImage.startsWith('data:')) {
-        garmInput = await uploadToHost(garmentImage);
-      }
-      
-      let humanInput = humanImageUrl || modelImage;
-      if (humanInput && humanInput.startsWith('data:')) {
-        humanInput = await uploadToHost(humanInput);
-      }
-      
-      console.log("Creating IDM-VTON prediction with URL inputs...");
+      console.log("Creating IDM-VTON prediction...");
       const prediction = await replicate.predictions.create({
         version: "0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
         input: {
@@ -101,7 +60,7 @@ export async function POST(request: Request) {
           steps: 30,
           category: vtonCategory,
           garm_img: garmInput,
-          human_img: humanInput,
+          human_img: humanImageUrl || modelImage,
           garment_des: "a beautiful fashion garment"
         }
       });
