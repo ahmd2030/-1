@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     // Ensure garmentImage is properly formatted if used
     let garmInput = garmentImage;
     if (garmInput && !garmInput.startsWith('data:') && !garmInput.startsWith('http')) {
-      garmInput = \data:image/jpeg;base64,\\;
+      garmInput = `data:image/jpeg;base64,${garmInput}`;
     }
 
     if (replicateStep === 1) {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         subjectPrompt += ' with long beautiful hair';
       }
       
-      const fluxPrompt = \A hyper-realistic, raw DSLR masterpiece portrait of \, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: \. Soft natural skin texture, perfect lighting, full body shot.\;
+      const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
       
       console.log("Creating FLUX prediction...");
       const prediction = await replicate.predictions.create({
