@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { FashnProvider } from '@/lib/ai/fashn';
+import { ReplicateProvider } from '@/lib/ai/replicate';
 
 export const maxDuration = 60;
 
@@ -12,7 +12,7 @@ async function uploadToHost(base64Image: string) {
   uploadFormData.append('format', 'json');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds max
+  const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
   try {
     const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
@@ -23,11 +23,7 @@ async function uploadToHost(base64Image: string) {
     });
     
     clearTimeout(timeoutId);
-
-    if (!uploadRes.ok) {
-      throw new Error('Failed to upload image to temporary host');
-    }
-
+    if (!uploadRes.ok) throw new Error('Failed to upload image');
     const uploadData = await uploadRes.json();
     return uploadData.image.url;
   } catch (error) {
@@ -45,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    const provider = new FashnProvider();
+    const provider = new ReplicateProvider();
     let result;
     
     try {
@@ -55,10 +51,10 @@ export async function POST(request: Request) {
         category: category || 'tops',
         modelType,
         style,
-        returnIdOnly: true
+        returnIdOnly: false // Replicate is sync, we don't need polling
       });
     } catch (fastPathError: any) {
-      console.warn("Fast path failed, falling back to freeimage.host:", fastPathError);
+      console.warn("Fast path failed (Replicate might not support this base64), falling back to freeimage.host:", fastPathError);
       const hostedGarmentUrl = await uploadToHost(garmentImage);
       let hostedModelUrl = undefined;
       if (modelImage) {
@@ -71,7 +67,7 @@ export async function POST(request: Request) {
         category: category || 'tops',
         modelType,
         style,
-        returnIdOnly: true
+        returnIdOnly: false
       });
     }
 
