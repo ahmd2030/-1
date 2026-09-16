@@ -28,18 +28,15 @@ export async function POST(request: Request) {
       const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
       
       console.log("Creating FLUX prediction...");
-      const prediction = await replicate.models.predictions.create(
-        "black-forest-labs",
-        "flux-schnell",
-        {
-          input: {
-            prompt: fluxPrompt,
-            aspect_ratio: "3:4",
-            output_format: "png",
-            num_outputs: 1
-          }
+      const prediction = await replicate.predictions.create({
+        model: "black-forest-labs/flux-schnell",
+        input: {
+          prompt: fluxPrompt,
+          aspect_ratio: "3:4",
+          output_format: "png",
+          num_outputs: 1
         }
-      );
+      });
       
       return NextResponse.json({
         id: prediction.id,
@@ -55,21 +52,18 @@ export async function POST(request: Request) {
       if (category === "one-pieces") vtonCategory = "dresses";
       
       console.log("Creating IDM-VTON prediction...");
-      const prediction = await replicate.models.predictions.create(
-        "yisol",
-        "idm-vton",
-        {
-          input: {
-            crop: false,
-            seed: 42,
-            steps: 30,
-            category: vtonCategory,
-            garm_img: garmInput,
-            human_img: humanImageUrl || modelImage,
-            garment_des: "a beautiful fashion garment"
-          }
+      const prediction = await replicate.predictions.create({
+        model: "yisol/idm-vton",
+        input: {
+          crop: false,
+          seed: 42,
+          steps: 30,
+          category: vtonCategory,
+          garm_img: garmInput,
+          human_img: humanImageUrl || modelImage,
+          garment_des: "a beautiful fashion garment"
         }
-      );
+      });
       
       return NextResponse.json({
         id: prediction.id,
