@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       
       console.log("Creating IDM-VTON prediction...");
       const prediction = await replicate.predictions.create({
-        model: "cuuupid/idm-vton",
+        version: "0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
         input: {
           crop: false,
           seed: 42,
