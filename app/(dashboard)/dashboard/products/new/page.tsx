@@ -374,7 +374,7 @@ export default function AIStudioPage() {
             modelImage: base64ModelImage,
             modelType,
             category,
-            style: finalPrompt,
+            style: finalPrompt, garmentDesc: genDesc || 'a beautiful fashion garment',
           })
         });
         

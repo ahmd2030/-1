@@ -6,7 +6,7 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { garmentImage, modelImage, modelType, style, category, replicateStep, humanImageUrl } = body;
+    const { garmentImage, modelImage, modelType, style, category, replicateStep, humanImageUrl, garmentDesc } = body;
 
     const apiKey = process.env.REPLICATE_API_TOKEN;
     if (!apiKey) throw new Error('REPLICATE_API_TOKEN is not configured');
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
           category: vtonCategory,
           garm_img: finalGarmInput,
           human_img: humanInput,
-          garment_des: "a beautiful fashion garment"
+          garment_des: garmentDesc || "a beautiful fashion garment"
         }
       });
       
