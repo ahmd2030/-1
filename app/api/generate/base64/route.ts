@@ -55,11 +55,24 @@ export async function POST(request: Request) {
       if (category === "bottoms") fashnCategory = "bottoms";
       if (category === "one-pieces") fashnCategory = "one-pieces";
       
+      console.log("Removing background on Fal.ai to clean flatlay...");
+      let cleanGarmInput = garmInput;
+      try {
+        const bgResult = await fal.subscribe("fal-ai/bria/background/remove", {
+          input: { image_url: garmInput }
+        });
+        if (bgResult?.data?.image?.url) {
+          cleanGarmInput = bgResult.data.image.url;
+        }
+      } catch (err) {
+        console.error("BG removal failed, using original garment", err);
+      }
+
       console.log("Creating Fashn v1.6 prediction on Fal.ai...");
       const { request_id } = await fal.queue.submit("fal-ai/fashn/tryon/v1.6", {
         input: {
           model_image: humanInput,
-          garment_image: garmInput,
+          garment_image: cleanGarmInput,
           category: fashnCategory
         }
       });
