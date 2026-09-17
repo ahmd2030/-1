@@ -3,6 +3,18 @@ import Replicate from 'replicate';
 
 export const maxDuration = 60;
 
+const withRetry = async (fn: () => Promise<any>) => {
+  try { return await fn(); }
+  catch (e: any) {
+    if (e.message && (e.message.includes('429') || e.message.includes('Too Many Requests'))) {
+      console.log('Rate limited (429). Waiting 5 seconds before retry...');
+      await new Promise(r => setTimeout(r, 5000));
+      return await fn();
+    }
+    throw e;
+  }
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -28,7 +40,7 @@ export async function POST(request: Request) {
       const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
       
       console.log("Creating FLUX prediction...");
-      const prediction = await replicate.predictions.create({
+      const prediction = await withRetry(() => replicate.predictions.create({
         model: "black-forest-labs/flux-schnell",
         input: {
           prompt: fluxPrompt,
@@ -36,7 +48,7 @@ export async function POST(request: Request) {
           output_format: "png",
           num_outputs: 1
         }
-      });
+      }));
       
       return NextResponse.json({
         id: prediction.id,
@@ -67,17 +79,17 @@ export async function POST(request: Request) {
       console.log("Removing background from garment image...");
       let cleanGarmInput = finalGarmInput;
       try {
-        const rembgOutput = await replicate.run(
+        const rembgOutput = await withRetry(() => replicate.run(
           "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
           { input: { image: finalGarmInput } }
-        );
+        ));
         if (rembgOutput) cleanGarmInput = rembgOutput;
       } catch (err) {
         console.error("Rembg failed, falling back to original", err);
       }
 
       console.log("Creating IDM-VTON prediction with native Buffer upload...");
-      const prediction = await replicate.predictions.create({
+      const prediction = await withRetry(() => replicate.predictions.create({
         version: "0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
         input: {
           crop: false,
@@ -88,7 +100,7 @@ export async function POST(request: Request) {
           human_img: humanInput,
           garment_des: garmentDesc || "a beautiful fashion garment"
         }
-      });
+      }));
       
       return NextResponse.json({
         id: prediction.id,
