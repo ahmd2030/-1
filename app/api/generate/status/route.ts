@@ -89,10 +89,25 @@ export async function GET(request: Request) {
     // Default to Fashn...
     const { FashnProvider } = await import('@/lib/ai/fashn');
     const fashn = new FashnProvider();
-    const result = await fashn.getStatus(rawId);
-    return NextResponse.json(result);
+    
+    try {
+      const result = await fashn.getStatus(rawId);
+      return NextResponse.json(result);
+    } catch (fashnError: any) {
+      console.error('Fashn polling caught error:', fashnError);
+      return NextResponse.json({
+        id: rawId,
+        status: 'failed',
+        error: fashnError.message || 'Generation failed'
+      });
+    }
+    
   } catch (error: any) {
     console.error('Status Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to check status' }, { status: 500 });
+    return NextResponse.json({ 
+      id: rawId || 'unknown',
+      status: 'failed',
+      error: error.message || 'Failed to check status' 
+    });
   }
 }
