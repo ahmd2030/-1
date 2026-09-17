@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
 export const maxDuration = 60;
@@ -51,7 +51,20 @@ export async function POST(request: Request) {
       if (category === "bottoms") vtonCategory = "lower_body";
       if (category === "one-pieces") vtonCategory = "dresses";
       
-      console.log("Creating IDM-VTON prediction...");
+      // Convert Data URIs to Buffers so Replicate SDK uploads them natively
+      let finalGarmInput: any = garmInput;
+      if (typeof garmInput === 'string' && garmInput.startsWith('data:')) {
+        const b64Data = garmInput.split(',')[1];
+        if (b64Data) finalGarmInput = Buffer.from(b64Data, 'base64');
+      }
+      
+      let humanInput: any = humanImageUrl || modelImage;
+      if (typeof humanInput === 'string' && humanInput.startsWith('data:')) {
+        const b64Data = humanInput.split(',')[1];
+        if (b64Data) humanInput = Buffer.from(b64Data, 'base64');
+      }
+
+      console.log("Creating IDM-VTON prediction with native Buffer upload...");
       const prediction = await replicate.predictions.create({
         version: "0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
         input: {
@@ -59,8 +72,8 @@ export async function POST(request: Request) {
           seed: 42,
           steps: 30,
           category: vtonCategory,
-          garm_img: garmInput,
-          human_img: humanImageUrl || modelImage,
+          garm_img: finalGarmInput,
+          human_img: humanInput,
           garment_des: "a beautiful fashion garment"
         }
       });
