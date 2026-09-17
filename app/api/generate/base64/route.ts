@@ -3,15 +3,19 @@ import Replicate from 'replicate';
 
 export const maxDuration = 60;
 
-const withRetry = async (fn: () => Promise<any>) => {
-  try { return await fn(); }
-  catch (e: any) {
-    if (e.message && (e.message.includes('429') || e.message.includes('Too Many Requests'))) {
-      console.log('Rate limited (429). Waiting 5 seconds before retry...');
-      await new Promise(r => setTimeout(r, 5000));
-      return await fn();
+const withRetry = async (fn: () => Promise<any>, maxRetries = 3) => {
+  let attempt = 0;
+  while (true) {
+    try { return await fn(); }
+    catch (e: any) {
+      if (attempt < maxRetries && e.message && (e.message.includes('429') || e.message.includes('Too Many Requests'))) {
+        console.log(`Rate limited (429). Attempt ${attempt + 1}. Waiting 8 seconds before retry...`);
+        await new Promise(r => setTimeout(r, 8000));
+        attempt++;
+        continue;
+      }
+      throw e;
     }
-    throw e;
   }
 };
 
