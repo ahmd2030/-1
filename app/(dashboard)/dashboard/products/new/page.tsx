@@ -399,12 +399,11 @@ export default function AIStudioPage() {
               createdAt: serverTimestamp()
             };
             let docId = Math.random().toString();
-            if (db) {
-              try {
-                const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
-                docId = docRef.id;
-              } catch (e) { console.error("Firebase err", e); }
-            }
+              if (db) {
+                addDoc(collection(db, "generated_images"), firebaseItem).then(docRef => {
+                  // docId = docRef.id; // Cannot assign safely after UI update, but that's fine, we use random ID for local state
+                }).catch(e => console.error("Firebase err", e));
+              }
             const finalItem = { id: docId, cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc, createdAt: new Date() };
             currentGallery = [finalItem, ...currentGallery];
             setGalleryImages([...currentGallery]);
@@ -612,12 +611,11 @@ export default function AIStudioPage() {
             createdAt: serverTimestamp()
           };
           let docId = Math.random().toString();
-          if (db) {
-            try {
-              const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
-              docId = docRef.id;
-            } catch (e) { console.error("Firebase err", e); }
-          }
+            if (db) {
+              addDoc(collection(db, "generated_images"), firebaseItem).then(docRef => {
+                  // fire and forget
+              }).catch(e => console.error("Firebase err", e));
+            }
           const finalItem = { id: docId, cleanUrl: safeImageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc, createdAt: new Date() };
           
           let currentGallery = galleryImages || [];
