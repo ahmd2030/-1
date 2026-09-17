@@ -3,27 +3,7 @@ import { FashnProvider } from '@/lib/ai/fashn';
 
 export const maxDuration = 60;
 
-async function uploadToHost(base64Image: string) {
-  const base64Data = base64Image.split(',')[1];
-  const uploadFormData = new URLSearchParams();
-  uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
-  uploadFormData.append('action', 'upload');
-  uploadFormData.append('source', base64Data);
-  uploadFormData.append('format', 'json');
 
-  const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
-    method: 'POST',
-    body: uploadFormData,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-
-  if (!uploadRes.ok) {
-    throw new Error('Failed to upload image to temporary host');
-  }
-
-  const uploadData = await uploadRes.json();
-  return uploadData.image.url;
-}
 
 export async function POST(request: Request) {
   try {
@@ -34,20 +14,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    const hostedGarmentUrl = await uploadToHost(garmentImage);
-    let hostedModelUrl = undefined;
-
-    if (modelImage) {
-      hostedModelUrl = await uploadToHost(modelImage);
-    }
-
     const provider = new FashnProvider();
     
-    // We pass returnIdOnly: true to immediately return the ID to the frontend.
-    // The frontend will then poll /api/generate/status
+    // Pass the base64 images directly to Fashn API, it supports them natively.
     const result = await provider.generate({
-      garmentImage: hostedGarmentUrl,
-      modelImage: hostedModelUrl,
+      garmentImage: garmentImage,
+      modelImage: modelImage,
       category: category || 'tops',
       modelType,
       style,
