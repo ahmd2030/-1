@@ -41,7 +41,11 @@ export async function POST(request: Request) {
         subjectPrompt += ' with long beautiful hair';
       }
       
-      const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing a blank tight white tank top and plain jeans. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
+      let baseOutfit = "a blank tight white tank top and plain jeans";
+      if (category === "bottoms") baseOutfit = "a plain t-shirt and tight white shorts";
+      if (category === "one-pieces") baseOutfit = "a plain tight white full-body bodysuit or simple white dress";
+      
+      const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing ${baseOutfit}. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
       
       console.log("Creating FLUX prediction...");
       const prediction = await withRetry(() => replicate.predictions.create({
