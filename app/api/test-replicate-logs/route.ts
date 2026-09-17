@@ -11,13 +11,11 @@ export async function GET() {
     const replicate = new Replicate({ auth: apiKey });
     const predictions = await replicate.predictions.list();
     
-    const logs = predictions.results.slice(0, 10).map(p => ({
+    const logs = predictions.results.slice(0, 5).map(p => ({
       id: p.id,
       model: p.model,
       status: p.status,
-      error: p.error,
-      created_at: p.created_at,
-      completed_at: p.completed_at
+      output: p.output
     }));
     
     return NextResponse.json(logs);
