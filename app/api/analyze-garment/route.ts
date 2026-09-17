@@ -32,8 +32,13 @@ Instructions:
      "woman" (for adult females), "man" (for adult males).
 2. "prompt":
    - Write a master-level, breathtaking, photorealistic fashion photography prompt for the model wearing this item.
-   - STRICT REQUIREMENT: Choose a varied, dynamic, real-world background location (e.g., 'a sun-drenched Italian villa', 'a rainy street in London', 'a luxury cafe in Paris'). DO NOT ALWAYS USE A STUDIO.
-   - End with: 'Natural, candid walking pose, smiling'.
+   - STRICT REQUIREMENT: You MUST choose the background environment LOGICALLY based on the exact type of garment. 
+     * If the item is pajamas, sleepwear, or baby onesies, the background MUST be an indoor bedroom, cozy nursery, or cozy indoor setting.
+     * If the item is swimwear, the background MUST be a beach or pool.
+     * If the item is a winter coat, the background MUST be snowy or cold outdoors.
+     * If the item is casual/formal, choose a fitting luxury location (e.g., 'luxury cafe', 'Italian villa').
+     Act as a logical fashion production director.
+   - End with: 'Natural candid pose, smiling'.
 3. "extracted_size":
    - Zoom in on any visible tags, labels, or text on the garment.
    - If you see a size (like S, M, L, XL, 3-6M, 4Y, 120cm, etc.), return exactly that string. If nothing is found, return an empty string "".
