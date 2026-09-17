@@ -126,17 +126,22 @@ export class FashnProvider implements AIProvider {
     }
     
     const data = await response.json();
+    const statusStr = (data.status || '').toLowerCase();
     
-    if (data.status === 'completed' || data.status === 'succeeded') {
+    if (statusStr === 'completed' || statusStr === 'succeeded') {
+      let finalImg = data.image_url;
+      if (data.output) {
+        finalImg = Array.isArray(data.output) ? data.output[0] : data.output;
+      }
       return {
         id: id,
-        imageUrl: data.output?.[0] || data.image_url,
+        imageUrl: finalImg,
         provider: 'fashn',
         model: 'tryon-max',
         cost: 1,
         status: 'completed'
       };
-    } else if (data.status === 'failed' || data.error) {
+    } else if (statusStr === 'failed' || data.error) {
       throw new Error(data.error?.message || data.error || 'Generation failed');
     }
     
@@ -165,16 +170,21 @@ export class FashnProvider implements AIProvider {
       if (!response.ok) throw new Error('Failed to poll FASHN status');
       
       const data = await response.json();
+      const statusStr = (data.status || '').toLowerCase();
       
-      if (data.status === 'completed' || data.status === 'succeeded') {
+      if (statusStr === 'completed' || statusStr === 'succeeded') {
+        let finalImg = data.image_url;
+        if (data.output) {
+          finalImg = Array.isArray(data.output) ? data.output[0] : data.output;
+        }
         return {
           id: id,
-          imageUrl: data.output?.[0] || data.image_url,
+          imageUrl: finalImg,
           provider: 'fashn',
           model: 'tryon-max',
           cost: 1,
         };
-      } else if (data.status === 'failed' || data.error) {
+      } else if (statusStr === 'failed' || data.error) {
         throw new Error(data.error || 'FASHN generation failed');
       }
       

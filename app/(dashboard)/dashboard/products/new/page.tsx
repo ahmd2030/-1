@@ -204,6 +204,12 @@ export default function AIStudioPage() {
       
       const img = new Image();
       img.crossOrigin = "anonymous";
+      
+      img.onerror = () => {
+        console.error("Failed to load image for catalogue overlay");
+        resolve(imageUrl);
+      };
+
       img.onload = () => {
         try {
           canvas.width = img.width;
@@ -310,7 +316,7 @@ export default function AIStudioPage() {
       };
       
       img.onerror = () => resolve(imageUrl);
-      img.src = imageUrl;
+      img.src = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
     });
   };
 
@@ -395,8 +401,7 @@ export default function AIStudioPage() {
             let docId = Math.random().toString();
             if (db) {
               try {
-                const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
-                docId = docRef.id;
+                addDoc(collection(db, "generated_images"), firebaseItem).catch(e => console.error("Firebase err", e));
               } catch (e) { console.error("Firebase err", e); }
             }
             const finalItem = { id: docId, cleanUrl: genData.imageUrl, previewUrl: finalImageUrl, sizes: genSizes, sku: genSku, desc: genDesc, createdAt: new Date() };
@@ -574,8 +579,7 @@ export default function AIStudioPage() {
           let docId = Math.random().toString();
           if (db) {
             try {
-              const docRef = await addDoc(collection(db, "generated_images"), firebaseItem);
-              docId = docRef.id;
+              addDoc(collection(db, "generated_images"), firebaseItem).catch(e => console.error("Firebase err", e));
             } catch (e) { console.error("Firebase err", e); }
           }
           const finalItem = { id: docId, cleanUrl: data.imageUrl, previewUrl: finalImageUrl, sizes, sku: productCode, desc: marketingDesc, createdAt: new Date() };
