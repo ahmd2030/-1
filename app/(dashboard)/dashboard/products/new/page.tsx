@@ -966,7 +966,7 @@ export default function AIStudioPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد والتصميم (قد يستغرق 30 ثانية)...'}</span>
+                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد (قد يستغرق 60 إلى 90 ثانية، المحرك يبني تفاصيل واقعية جداً)...'}</span>
                 </>
               ) : (
                 <>
