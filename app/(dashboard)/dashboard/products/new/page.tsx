@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -108,7 +108,7 @@ export default function AIStudioPage() {
         if (event.target?.result) setBase64Image(event.target.result as string);
       };
       reader.readAsDataURL(e.target.files[0]);
-      toast.success(`╪ز┘à ╪ح╪╢╪د┘╪ر ${e.target.files.length} ╪╡┘ê╪▒ ┘┘╪╖╪د╪ذ┘ê╪▒. ╪د╪╢╪║╪╖ ╪▓╪▒ ╪د┘╪ز┘ê┘┘è╪» ╪د┘╪ش┘à╪د╪╣┘è ┘┘╪ذ╪»╪ة!`);
+      toast.success(`تم إضافة ${e.target.files.length} صور للطابور. اضغط زر التوليد الجماعي للبدء!`);
     } else {
       setIsBulkMode(false);
       setQueue([]);
@@ -133,7 +133,7 @@ export default function AIStudioPage() {
     reader.onload = (event) => {
       if (event.target?.result) {
         setBase64Logo(event.target.result as string);
-        toast.success("╪ز┘à ╪▒┘╪╣ ╪د┘╪┤╪╣╪د╪▒ ╪ذ┘╪ش╪د╪ص! ╪│┘è╪ز┘à ╪«╪ز┘à┘ç ╪╣┘┘ë ╪ش┘à┘è╪╣ ╪د┘╪╡┘ê╪▒.");
+        toast.success("تم رفع الشعار بنجاح! سيتم ختمه على جميع الصور.");
       }
     };
     reader.readAsDataURL(e.target.files[0]);
@@ -141,7 +141,7 @@ export default function AIStudioPage() {
   
   const analyzeGarment = async (b64: string) => {
     setIsAnalyzing(true);
-    setStylePrompt("╪ش╪د╪▒┘è ╪ز╪ص┘┘è┘ ╪د┘┘é╪╖╪╣╪ر ╪ذ╪د┘╪░┘â╪د╪ة ╪د┘╪د╪╡╪╖┘╪د╪╣┘è ┘╪د╪│╪ز╪«╪▒╪د╪ش ╪د┘╪ذ┘è╪د┘╪د╪ز ┘ê╪د╪ذ╪ز┘â╪د╪▒ ╪«┘┘┘è╪ر (┘è╪│╪ز╪║╪▒┘é ╪ذ╪╢╪╣ ╪س┘ê╪د┘)...");
+    setStylePrompt("جاري تحليل القطعة بالذكاء الاصطناعي لاستخراج البيانات وابتكار خلفية (يستغرق بضع ثوان)...");
     setError(null);
     try {
       const optimizedImage = await resizeImageForAnalysis(b64);
@@ -156,11 +156,11 @@ export default function AIStudioPage() {
         try {
           data = await res.json();
         } catch(err) {
-          throw new Error("┘╪┤┘ ╪د┘╪د╪ز╪╡╪د┘ ╪ذ┘à╪ص┘┘ ╪د┘╪╡┘ê╪▒.");
+          throw new Error("فشل الاتصال بمحلل الصور.");
         }
         
         if (!res.ok || data.error) {
-          throw new Error(data.error || "╪ص╪»╪س ╪«╪╖╪ث ╪ث╪س┘╪د╪ة ╪ز╪ص┘┘è┘ ╪د┘╪╡┘ê╪▒╪ر.");
+          throw new Error(data.error || "حدث خطأ أثناء تحليل الصورة.");
         }
 
       if (data.suggestion) {
@@ -168,12 +168,12 @@ export default function AIStudioPage() {
         if (data.size && data.size.trim().length > 0) setSizes(data.size);
         if (data.sku && data.sku.trim().length > 0) setProductCode(data.sku);
         if (data.marketing_desc && data.marketing_desc.trim().length > 0) setMarketingDesc(data.marketing_desc);
-        toast.success("╪ز┘à ╪د╪ذ╪ز┘â╪د╪▒ ╪«┘┘┘è╪ر ╪ش╪»┘è╪»╪ر ┘ê╪د╪│╪ز╪«╪▒╪د╪ش ╪د┘╪ذ┘è╪د┘╪د╪ز ╪ذ┘╪ش╪د╪ص!");
+        toast.success("تم ابتكار خلفية جديدة واستخراج البيانات بنجاح!");
       }
     } catch(e: any) {
       console.error(e);
       setStylePrompt("A beautiful cobblestone street in Paris, blurred cafe tables in the background, autumn leaves falling, soft cinematic sunlight. Natural candid walking pose, smiling.");
-      toast.error("╪«╪╖╪ث: " + (e.message || "╪ز╪╣╪░╪▒ ╪د┘╪ز╪ص┘┘è┘"));
+      toast.error("خطأ: " + (e.message || "تعذر التحليل"));
     } finally {
       setIsAnalyzing(false);
     }
@@ -224,7 +224,7 @@ export default function AIStudioPage() {
               ctx.fillStyle = "#475569"; 
               ctx.font = `bold ${img.width * 0.035}px Arial, sans-serif`;
               if (customSizes || sizes) {
-                  const sizeArray = (customSizes || sizes).split(/[,/|╪î\n]/).map(s => s.trim()).filter(Boolean);
+                  const sizeArray = (customSizes || sizes).split(/[,/|،\n]/).map(s => s.trim()).filter(Boolean);
                                 let sizeY = padding + (img.width * 0.06);
                   sizeArray.forEach(sizeLine => {
                     ctx.fillText(sizeLine, img.width - padding, sizeY);
@@ -411,7 +411,7 @@ export default function AIStudioPage() {
           }
       } catch (err) {
         console.error("Error processing item", i, err);
-          setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'error', error: (err as Error).message || "┘╪┤┘╪ز ╪د┘╪╣┘à┘┘è╪ر" } : s));
+          setQueueStatus(prev => prev.map((s, idx) => idx === i ? { status: 'error', error: (err as Error).message || "فشلت العملية" } : s));
         }
     }
     
@@ -419,16 +419,16 @@ export default function AIStudioPage() {
     setProcessingIndex(-1);
     setIsBulkMode(false);
     setQueue([]);
-    toast.success("╪ز┘à ╪د┘╪د┘╪ز┘ç╪د╪ة ┘à┘ ╪د┘╪ز┘ê┘┘è╪» ╪د┘╪ش┘à╪د╪╣┘è!");
+    toast.success("تم الانتهاء من التوليد الجماعي!");
   };
 
   
   const createCollage = async () => {
     if (galleryImages.length < 2) {
-      toast.error("┘è╪ش╪ذ ╪ث┘ ┘è┘â┘ê┘ ┘╪»┘è┘â ╪╡┘ê╪▒╪ز┘è┘ ╪╣┘┘ë ╪د┘╪ث┘é┘ ┘┘è ╪د┘┘à╪╣╪▒╪╢ ┘╪»┘à╪ش┘ç┘à╪د!");
+      toast.error("يجب أن يكون لديك صورتين على الأقل في المعرض لدمجهما!");
       return;
     }
-    toast.info("╪ش╪د╪▒┘è ╪»┘à╪ش ╪ث┘ê┘ ╪╡┘ê╪▒╪ز┘è┘...");
+    toast.info("جاري دمج أول صورتين...");
     try {
       const img1Obj = galleryImages[0];
       const img2Obj = galleryImages[1];
@@ -476,10 +476,10 @@ export default function AIStudioPage() {
         localStorage.setItem('ai_fashion_generated_images', JSON.stringify(updatedGallery));
       } catch(e) {}
       
-      toast.success("╪ز┘à ╪»┘à╪ش ╪د┘╪╡┘ê╪▒╪ز┘è┘ ╪ذ┘╪ش╪د╪ص!");
+      toast.success("تم دمج الصورتين بنجاح!");
     } catch(err) {
       console.error(err);
-      toast.error("┘╪┤┘ ╪»┘à╪ش ╪د┘╪╡┘ê╪▒╪ز┘è┘");
+      toast.error("فشل دمج الصورتين");
     }
   };
 
@@ -490,11 +490,11 @@ export default function AIStudioPage() {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       if (attempts === 15) {
-        toast("┘╪د ╪▓╪د┘ ╪د┘╪ز┘ê┘┘è╪» ┘à╪│╪ز┘à╪▒╪د┘ï╪î ╪د┘╪«┘ê╪د╪»┘à ┘à╪▓╪»╪ص┘à╪ر ┘é┘┘è┘╪د┘ï ╪د┘┘è┘ê┘à...", { icon: 'ظ│', duration: 4000 });
+        toast("لا زال التوليد مستمراً، الخوادم مزدحمة قليلاً اليوم...", { icon: '⏳', duration: 4000 });
       } else if (attempts === 30) {
-        toast("╪د┘╪▒╪ش╪د╪ة ╪د┘╪د┘╪ز╪╕╪د╪▒╪î ╪د┘╪░┘â╪د╪ة ╪د┘╪د╪╡╪╖┘╪د╪╣┘è ┘è┘é┘ê┘à ╪ذ╪ذ┘╪د╪ة ╪ز┘╪د╪╡┘è┘ ┘ê╪د┘é╪╣┘è╪ر ╪ش╪»╪د┘ï...", { icon: '≡اذ', duration: 4000 });
+        toast("الرجاء الانتظار، الذكاء الاصطناعي يقوم ببناء تفاصيل واقعية جداً...", { icon: '🎨', duration: 4000 });
       } else if (attempts === 60) {
-        toast("╪د┘╪ز┘ê┘┘è╪» ┘è╪ث╪«╪░ ┘ê┘é╪ز╪د┘ï ╪ث╪╖┘ê┘ ┘à┘ ╪د┘┘à╪╣╪ز╪د╪» ╪ذ╪│╪ذ╪ذ ╪د┘╪╢╪║╪╖ ╪╣┘┘ë ╪د┘╪│┘è╪▒┘╪▒╪د╪ز ╪د┘╪╣╪د┘┘à┘è╪ر...", { icon: '≡اî', duration: 4000 });
+        toast("التوليد يأخذ وقتاً أطول من المعتاد بسبب الضغط على السيرفرات العالمية...", { icon: '🌍', duration: 4000 });
       }
 
       try {
@@ -523,7 +523,7 @@ export default function AIStudioPage() {
 
   const handleGenerate = async () => {
     if (!base64Image) {
-      toast.error("╪د┘╪▒╪ش╪د╪ة ╪▒┘╪╣ ╪╡┘ê╪▒╪ر ┘┘┘à┘╪ز╪ش ╪ث┘ê┘╪د┘ï");
+      toast.error("الرجاء رفع صورة للمنتج أولاً");
       return;
     }
     
@@ -551,16 +551,16 @@ export default function AIStudioPage() {
       let data = await res.json();
       
       if (data.id && data.status === 'processing') {
-        toast.success("╪ز┘à ╪ذ╪»╪ة ╪د┘╪ز┘ê┘┘è╪»╪î ┘è╪▒╪ش┘ë ╪د┘╪د┘╪ز╪╕╪د╪▒ (┘é╪» ┘è╪│╪ز╪║╪▒┘é 40-60 ╪س╪د┘┘è╪ر)...", { duration: 5000 });
+        toast.success("تم بدء التوليد، يرجى الانتظار (قد يستغرق 40-60 ثانية)...", { duration: 5000 });
         data = await pollStatus(data.id);
       }
       
       if (data.error) {
         setError(data.error);
-        toast.error("╪ص╪»╪س ╪«╪╖╪ث ╪ث╪س┘╪د╪ة ╪د┘╪ز┘ê┘┘è╪»");
+        toast.error("حدث خطأ أثناء التوليد");
       } else if (data.imageUrl) {
         
-        toast.success("╪ز┘à ╪ز┘ê┘┘è╪» ╪د┘╪╡┘ê╪▒╪ر╪î ╪ش╪د╪▒┘è ╪ز╪╡┘à┘è┘à ╪║┘╪د┘ ╪د┘┘â╪ز╪د┘┘ê╪ش...");
+        toast.success("تم توليد الصورة، جاري تصميم غلاف الكتالوج...");
         const finalImageUrl = await applyCatalogueOverlay(data.imageUrl, sizes, productCode, marketingDesc);
         
           const firebaseItem = { 
@@ -587,11 +587,11 @@ export default function AIStudioPage() {
           } catch(e) {}
         // setGalleryImages(updated); // Fixed TS error
         
-        toast.success("╪ز┘à ╪د┘╪ز┘ê┘┘è╪» ┘ê╪د┘╪ز╪╡┘à┘è┘à ╪ذ┘╪ش╪د╪ص!");
+        toast.success("تم التوليد والتصميم بنجاح!");
         setShowGallery(true);
       }
     } catch (e: any) {
-      setError(e.message || "╪ص╪»╪س ╪«╪╖╪ث ╪║┘è╪▒ ┘à╪ز┘ê┘é╪╣");
+      setError(e.message || "حدث خطأ غير متوقع");
     } finally {
       setLoading(false);
     }
@@ -619,7 +619,7 @@ export default function AIStudioPage() {
     const htmlContent = `
       <html>
         <head>
-          <title>┘â╪ز╪د┘┘ê╪ش ╪د┘┘à╪ذ┘è╪╣╪د╪ز - ${new Date().toLocaleDateString()}</title>
+          <title>كتالوج المبيعات - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: sans-serif; margin: 0; padding: 20px; background: white; }
             .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -633,7 +633,7 @@ export default function AIStudioPage() {
         <body>
           <div class="no-print" style="text-align:center; padding: 20px; background: #f8fafc; margin-bottom: 20px;">
             <button onclick="window.print()" style="padding: 10px 20px; font-size: 18px; font-weight: bold; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              ≡اûذي╕ ╪د╪╢╪║╪╖ ┘ç┘╪د ┘┘╪╖╪ذ╪د╪╣╪ر ╪ث┘ê ╪د┘╪ص┘╪╕ ┘â┘ PDF
+              🖨️ اضغط هنا للطباعة أو الحفظ كـ PDF
             </button>
           </div>
           <div class="grid">
@@ -656,8 +656,8 @@ export default function AIStudioPage() {
         <div className="bg-slate-900 text-white px-6 py-5 flex flex-row-reverse justify-between items-center z-10 shadow-md">
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <h2 className="font-bold text-xl">╪د╪│╪ز┘ê╪»┘è┘ê ╪د┘┘à╪د╪▒┘â╪ر (╪ح╪╡╪»╪د╪▒ ╪د┘┘à╪ذ┘è╪╣╪د╪ز)</h2>
-              <p className="text-sm text-slate-400 mt-1">╪░┘â╪د╪ة ╪د╪╡╪╖┘╪د╪╣┘è ┘╪د╪خ┘é + ╪ح╪»╪د╪▒╪ر ╪د┘┘â╪ز╪د┘┘ê╪ش</p>
+              <h2 className="font-bold text-xl">استوديو الماركة (إصدار المبيعات)</h2>
+              <p className="text-sm text-slate-400 mt-1">ذكاء اصطناعي فائق + إدارة الكتالوج</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-indigo-300" />
@@ -669,7 +669,7 @@ export default function AIStudioPage() {
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
             >
               <ImageIcon className="w-5 h-5" />
-              <span>┘à╪╣╪▒╪╢ ╪د┘┘à╪ذ┘è╪╣╪د╪ز</span>
+              <span>معرض المبيعات</span>
               {galleryImages.length > 0 && (
                 <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
               )}
@@ -682,7 +682,7 @@ export default function AIStudioPage() {
             
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
-                <span>╪د┘╪╡┘ê╪▒╪ر ╪د┘╪ث╪╡┘┘è╪ر ┘┘┘à┘╪ز╪ش</span>
+                <span>الصورة الأصلية للمنتج</span>
                 <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">1</span>
               </h3>
               
@@ -696,7 +696,7 @@ export default function AIStudioPage() {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   <Upload className="w-10 h-10 text-slate-400 mb-3" />
-                  <p className="font-medium text-slate-600">╪د╪╢╪║╪╖ ┘ç┘╪د ┘╪▒┘╪╣ ╪╡┘ê╪▒╪ر ╪د┘┘à┘╪ز╪ش</p>
+                  <p className="font-medium text-slate-600">اضغط هنا لرفع صورة المنتج</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -704,7 +704,7 @@ export default function AIStudioPage() {
                     <img src={base64Image} alt="Uploaded product" className="w-full h-64 object-contain bg-slate-50" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <label className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold cursor-pointer hover:bg-slate-200">
-                        ╪ز╪║┘è┘è╪▒ ╪د┘╪╡┘ê╪▒╪ر
+                        تغيير الصورة
                         <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
                       </label>
                     </div>
@@ -716,17 +716,17 @@ export default function AIStudioPage() {
                         onClick={() => setGarmentDirection('back')}
                         className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${garmentDirection === 'back' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border'}`}
                       >
-                        ┘à┘ ╪د┘╪«┘┘ (╪╕┘ç╪▒)
+                        من الخلف (ظهر)
                       </button>
                       <button 
                         onClick={() => setGarmentDirection('front')}
                         className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${garmentDirection === 'front' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border'}`}
                       >
-                        ┘à┘ ╪د┘╪ث┘à╪د┘à
+                        من الأمام
                       </button>
                     </div>
                     <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      ╪▓╪د┘ê┘è╪ر ╪د┘┘é╪╖╪╣╪ر
+                      زاوية القطعة
                       <Camera className="w-4 h-4 text-slate-400" />
                     </label>
                   </div>
@@ -739,7 +739,7 @@ export default function AIStudioPage() {
               
               <div className="flex items-center justify-between mb-6 flex-row-reverse relative z-10">
                 <h3 className="font-bold text-lg text-indigo-900 flex items-center gap-2">
-                  <span>╪«╪ز┘à ╪د┘┘ç┘ê┘è╪ر ┘ê╪ز╪╡┘à┘è┘à ╪د┘┘â╪ز╪د┘┘ê╪ش</span>
+                  <span>ختم الهوية وتصميم الكتالوج</span>
                   <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm"><Type className="w-3 h-3" /></span>
                 </h3>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -750,21 +750,21 @@ export default function AIStudioPage() {
               
               {catalogueMode && (
                 <div className="space-y-4 text-right relative z-10 animate-in fade-in slide-in-from-top-4">
-                  <p className="text-sm text-indigo-700/80 mb-4">╪ث╪╢┘ ╪┤╪╣╪د╪▒┘â ╪د┘╪▒╪│┘à┘è. ╪│┘è┘é┘ê┘à ╪د┘┘╪╕╪د┘à ╪ذ╪د╪│╪ز╪«╪▒╪د╪ش ╪د┘┘à┘é╪د╪│ ┘ê╪▒┘é┘à ╪د┘┘à┘╪ز╪ش ╪ز┘┘é╪د╪خ┘è╪د┘ï ┘à┘ ╪د┘╪╡┘ê╪▒╪ر (╪ح┘ ┘ê╪ش╪»).</p>
+                  <p className="text-sm text-indigo-700/80 mb-4">أضف شعارك الرسمي. سيقوم النظام باستخراج المقاس ورقم المنتج تلقائياً من الصورة (إن وجد).</p>
                   
                   <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-row-reverse items-center justify-between">
                     <div className="text-right">
-                      <label className="block text-sm font-bold text-slate-800 mb-1">╪د┘╪┤╪╣╪د╪▒ ╪د┘╪▒╪│┘à┘è (Logo)</label>
-                      <p className="text-xs text-slate-500">╪د╪▒┘╪╣ ┘à┘┘ PNG ┘┘è╪ز┘à ┘ê╪╢╪╣┘ç ┘â╪╣┘╪د┘à╪ر ┘à╪د╪خ┘è╪ر</p>
+                      <label className="block text-sm font-bold text-slate-800 mb-1">الشعار الرسمي (Logo)</label>
+                      <p className="text-xs text-slate-500">ارفع ملف PNG ليتم وضعه كعلامة مائية</p>
                     </div>
                     {base64Logo ? (
                       <div className="flex items-center gap-3">
                         <img src={base64Logo} className="h-10 object-contain" alt="Logo" />
-                        <button onClick={() => setBase64Logo(null)} className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded">╪ص╪░┘</button>
+                        <button onClick={() => setBase64Logo(null)} className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded">حذف</button>
                       </div>
                     ) : (
                       <label className="cursor-pointer bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
-                        ╪▒┘╪╣ ╪د┘╪┤╪╣╪د╪▒
+                        رفع الشعار
                         <input type="file" accept="image/png,image/jpeg" onChange={handleLogoSelect} className="hidden" />
                       </label>
                     )}
@@ -772,19 +772,19 @@ export default function AIStudioPage() {
 
                   {!base64Logo && (
                     <div className="mt-2">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">╪د╪│┘à ╪د┘┘à╪د╪▒┘â╪ر (┘è╪╕┘ç╪▒ ╪ذ╪«╪╖ ╪ث┘┘è┘é)</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">اسم الماركة (يظهر بخط أنيق)</label>
                       <input type="text" value={brandName} onChange={e=>setBrandName(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" />
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">╪د┘┘à┘é╪د╪│╪د╪ز (┘à╪│╪ز╪«╪▒╪ش ╪ت┘┘è╪د┘ï)</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">المقاسات (مستخرج آلياً)</label>
                       <textarea value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left resize-none h-[42px] focus:h-24 transition-all" dir="ltr" placeholder="S.M.L 
 2-5 Years" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">╪▒┘à╪▓ ╪د┘┘à┘╪ز╪ش (┘à╪│╪ز╪«╪▒╪ش ╪ت┘┘è╪د┘ï)</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">رمز المنتج (مستخرج آلياً)</label>
                       <input type="text" value={productCode} onChange={e=>setProductCode(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left" dir="ltr" placeholder="BR-2024" />
                     </div>
                   </div>
@@ -794,7 +794,7 @@ export default function AIStudioPage() {
 
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
-                <span>(╪د╪«╪ز┘è╪د╪▒┘è) ┘ê╪╢╪╣ ╪د┘╪╣╪د╪▒╪╢ ╪د┘┘à╪╖╪د╪ذ┘é ┘┘┘â╪ز╪د┘┘ê╪ش</span>
+                <span>(اختياري) وضع العارض المطابق للكتالوج</span>
                 <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm"><UserSquare2 className="w-4 h-4" /></span>
               </h3>
               
@@ -807,14 +807,14 @@ export default function AIStudioPage() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UserSquare2 className="w-8 h-8 text-slate-400 mb-2" />
-                  <p className="font-medium text-slate-600">╪د╪▒┘╪╣ ╪╡┘ê╪▒╪ر ╪د┘╪╣╪د╪▒╪╢ (┘à┘ ╪د┘┘â╪ز╪د┘┘ê╪ش ╪د┘┘à╪▒╪ش╪╣┘è ╪د┘╪«╪د╪╡ ╪ذ┘â)</p>
+                  <p className="font-medium text-slate-600">ارفع صورة العارض (من الكتالوج المرجعي الخاص بك)</p>
                 </div>
               ) : (
                 <div className="relative rounded-xl overflow-hidden border group">
                   <img src={base64ModelImage} alt="Model Reference" className="w-full h-64 object-contain bg-slate-50" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
                     <button onClick={() => setBase64ModelImage(null)} className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600">
-                      ╪ح╪▓╪د┘╪ر ╪د┘╪╡┘ê╪▒╪ر
+                      إزالة الصورة
                     </button>
                   </div>
                 </div>
@@ -823,19 +823,19 @@ export default function AIStudioPage() {
 
             <div className={`bg-white p-6 rounded-2xl border shadow-sm transition-opacity ${base64ModelImage ? 'opacity-50 pointer-events-none' : ''}`}>
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
-                <span>╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪╣╪د╪▒╪╢ ┘ê╪د┘╪░┘â╪د╪ة ╪د┘╪د╪╡╪╖┘╪د╪╣┘è</span>
+                <span>إعدادات العارض والذكاء الاصطناعي</span>
                 <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">3</span>
               </h3>
               
               <div className="space-y-6 text-right">
                 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3">┘┘ê╪╣ ╪د┘┘é╪╖╪╣╪ر ╪د┘┘à╪▒┘┘ê╪╣╪ر</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-3">نوع القطعة المرفوعة</label>
                   <div className="flex flex-row-reverse gap-3">
                     {[
-                      { id: 'tops', label: '┘é╪╖╪╣╪ر ╪╣┘┘ê┘è╪ر / ╪ش╪د┘â┘è╪ز' },
-                      { id: 'bottoms', label: '╪ذ┘╪╖┘┘ê┘ / ╪ز┘┘ê╪▒╪ر' },
-                      { id: 'one-pieces', label: '┘╪│╪ز╪د┘ / ╪╖┘é┘à ┘â╪د┘à┘' }
+                      { id: 'tops', label: 'قطعة علوية / جاكيت' },
+                      { id: 'bottoms', label: 'بنطلون / تنورة' },
+                      { id: 'one-pieces', label: 'فستان / طقم كامل' }
                     ].map(type => (
                       <button
                         key={type.id}
@@ -860,23 +860,23 @@ export default function AIStudioPage() {
                     <div className={`block w-10 h-6 rounded-full transition-colors ${generateMarketingDesc ? 'bg-emerald-600' : 'bg-slate-300'}`}></div>
                     <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${generateMarketingDesc ? 'translate-x-4' : ''}`}></div>
                   </div>
-                  <span className="text-sm font-bold text-emerald-900">╪ز┘ê┘┘è╪» ┘ê╪╡┘ ╪ز╪│┘ê┘è┘é┘è ╪ت┘┘è (╪د┘╪╣╪▒╪ذ┘è╪ر) ╪╣┘┘ë ╪د┘╪╡┘ê╪▒╪ر</span>
+                  <span className="text-sm font-bold text-emerald-900">توليد وصف تسويقي آلي (العربية) على الصورة</span>
                 </label>
               </div>
 
-                <label className="block text-sm font-bold text-slate-700 mb-3">╪╣┘à╪▒ ┘ê╪ش┘╪│ ╪د┘╪╣╪د╪▒╪╢ (┘à┘ç┘à ╪ش╪»╪د┘ï)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-3">عمر وجنس العارض (مهم جداً)</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" dir="rtl">
                     {[
-                        { id: 'baby girl', label: '╪╖┘┘╪ر (9 ╪ث╪┤┘ç╪▒)' },
-                        { id: 'baby boy', label: '╪╖┘┘ (9 ╪ث╪┤┘ç╪▒)' },
-                        { id: 'toddler girl', label: '╪ذ┘╪ز ╪╡╪║┘è╪▒╪ر (3 ╪│┘┘ê╪د╪ز)' },
-                        { id: 'toddler boy', label: '┘ê┘╪» ╪╡╪║┘è╪▒ (3 ╪│┘┘ê╪د╪ز)' },
-                        { id: 'young girl', label: '╪ذ┘╪ز (6-12 ╪│┘╪ر)' },
-                        { id: 'young boy', label: '┘ê┘╪» (6-12 ╪│┘╪ر)' },
-                        { id: 'teen girl', label: '╪┤╪د╪ذ╪ر (16 ╪│┘╪ر)' },
-                        { id: 'teen boy', label: '╪┤╪د╪ذ (16 ╪│┘╪ر)' },
-                        { id: 'woman', label: '╪د┘à╪▒╪ث╪ر' },
-                        { id: 'man', label: '╪▒╪ش┘' }
+                        { id: 'baby girl', label: 'طفلة (9 أشهر)' },
+                        { id: 'baby boy', label: 'طفل (9 أشهر)' },
+                        { id: 'toddler girl', label: 'بنت صغيرة (3 سنوات)' },
+                        { id: 'toddler boy', label: 'ولد صغير (3 سنوات)' },
+                        { id: 'young girl', label: 'بنت (6-12 سنة)' },
+                        { id: 'young boy', label: 'ولد (6-12 سنة)' },
+                        { id: 'teen girl', label: 'شابة (16 سنة)' },
+                        { id: 'teen boy', label: 'شاب (16 سنة)' },
+                        { id: 'woman', label: 'امرأة' },
+                        { id: 'man', label: 'رجل' }
                       ].map(type => (
                       <button
                         key={type.id}
@@ -895,7 +895,7 @@ export default function AIStudioPage() {
 
                 <div className="relative">
                   <div className="flex items-center justify-between mb-3 flex-row-reverse">
-                    <label className="block text-sm font-bold text-slate-700">╪»┘è┘â┘ê╪▒ ╪د┘╪«┘┘┘è╪ر (╪ز┘ê┘┘è╪» ╪░┘â┘è)</label>
+                    <label className="block text-sm font-bold text-slate-700">ديكور الخلفية (توليد ذكي)</label>
                     {base64Image && (
                       <button 
                         onClick={() => analyzeGarment(base64Image)}
@@ -903,7 +903,7 @@ export default function AIStudioPage() {
                         className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                        <span>╪ز╪ص┘┘è┘ ╪د┘┘é╪╖╪╣╪ر ┘ê╪د╪ذ╪ز┘â╪د╪▒ ╪»┘è┘â┘ê╪▒ ┘╪▒┘è╪»</span>
+                        <span>تحليل القطعة وابتكار ديكور فريد</span>
                       </button>
                     )}
                   </div>
@@ -921,7 +921,7 @@ export default function AIStudioPage() {
                     {isAnalyzing && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-xl backdrop-blur-[1px]">
                         <Loader2 className="w-6 h-6 text-indigo-600 animate-spin mb-2" />
-                        <span className="text-sm font-bold text-indigo-800">╪ش╪د╪▒┘è ╪ز╪ص┘┘è┘ ╪د┘┘é╪╖╪╣╪ر ┘ê╪د╪ذ╪ز┘â╪د╪▒ ╪د┘╪«┘┘┘è╪ر...</span>
+                        <span className="text-sm font-bold text-indigo-800">جاري تحليل القطعة وابتكار الخلفية...</span>
                       </div>
                     )}
                   </div>
@@ -932,16 +932,16 @@ export default function AIStudioPage() {
             
             {isBulkMode && queue.length > 0 && (
               <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6 space-y-2 max-h-60 overflow-y-auto" dir="rtl">
-                 <h4 className="font-bold text-slate-800 mb-3">╪╖╪د╪ذ┘ê╪▒ ╪د┘╪ز┘ê┘┘è╪» ({queue.length} ╪╡┘ê╪▒)</h4>
+                 <h4 className="font-bold text-slate-800 mb-3">طابور التوليد ({queue.length} صور)</h4>
                  {queue.map((file, i) => (
                     <div key={i} className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-lg border border-slate-100">
                        <span className="truncate w-40 font-medium text-slate-600" dir="ltr">{file.name}</span>
                        <span className="text-left">
-                         {(!queueStatus[i] || queueStatus[i].status === 'waiting') && <span className="text-slate-400 font-bold">┘┘è ╪د┘╪د┘╪ز╪╕╪د╪▒ ظ│</span>}
-                         {queueStatus[i]?.status === 'analyzing' && <span className="text-blue-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> ┘è┘é╪▒╪ث ╪د┘┘à┘é╪د╪│...</span>}
-                         {queueStatus[i]?.status === 'generating' && <span className="text-indigo-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> ┘è╪▒╪│┘à ╪د┘┘à┘ê╪»┘è┘...</span>}
-                         {queueStatus[i]?.status === 'done' && <span className="text-emerald-500 font-bold">╪د┘â╪ز┘à┘╪ز ظ£à</span>}
-                         {queueStatus[i]?.status === 'error' && <span className="text-red-500 font-bold" title={queueStatus[i]?.error}>┘╪┤┘╪ز ظإî</span>}
+                         {(!queueStatus[i] || queueStatus[i].status === 'waiting') && <span className="text-slate-400 font-bold">في الانتظار ⏳</span>}
+                         {queueStatus[i]?.status === 'analyzing' && <span className="text-blue-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> يقرأ المقاس...</span>}
+                         {queueStatus[i]?.status === 'generating' && <span className="text-indigo-500 font-bold flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> يرسم الموديل...</span>}
+                         {queueStatus[i]?.status === 'done' && <span className="text-emerald-500 font-bold">اكتملت ✅</span>}
+                         {queueStatus[i]?.status === 'error' && <span className="text-red-500 font-bold" title={queueStatus[i]?.error}>فشلت ❌</span>}
                        </span>
                     </div>
                  ))}
@@ -950,7 +950,7 @@ export default function AIStudioPage() {
 
               {error && (
                 <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-right font-medium text-sm">
-                ظإî {error}
+                ❌ {error}
               </div>
             )}
 
@@ -966,12 +966,12 @@ export default function AIStudioPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>{isBulkMode && processingIndex >= 0 ? `╪ش╪د╪▒┘è ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╡┘ê╪▒╪ر ${processingIndex + 1} ┘à┘ ${queue.length}...` : '╪ش╪د╪▒┘è ╪د┘╪ز┘ê┘┘è╪» ┘ê╪د┘╪ز╪╡┘à┘è┘à (┘é╪» ┘è╪│╪ز╪║╪▒┘é 30 ╪س╪د┘┘è╪ر)...'}</span>
+                  <span>{isBulkMode && processingIndex >= 0 ? `جاري معالجة الصورة ${processingIndex + 1} من ${queue.length}...` : 'جاري التوليد والتصميم (قد يستغرق 30 ثانية)...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-6 h-6" />
-                  <span>{isBulkMode ? `╪ذ╪»╪ة ╪د┘╪ز┘ê┘┘è╪» ╪د┘╪ش┘à╪د╪╣┘è ┘┘ ${queue.length} ╪╡┘ê╪▒ ≡اأ` : '╪ذ╪»╪ة ╪د┘╪ز╪╡┘à┘è┘à ┘ê╪ح┘╪┤╪د╪ة ╪╡┘╪ص╪ر ╪د┘┘â╪ز╪د┘┘ê╪ش!'}</span>
+                  <span>{isBulkMode ? `بدء التوليد الجماعي لـ ${queue.length} صور 🚀` : 'بدء التصميم وإنشاء صفحة الكتالوج!'}</span>
                 </>
               )}
             </button>
@@ -985,7 +985,7 @@ export default function AIStudioPage() {
             <div className="flex flex-row-reverse justify-between items-center w-full">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-lg">┘â╪ز╪د┘┘ê╪ش ╪د┘┘à╪ذ┘è╪╣╪د╪ز</h3>
+                <h3 className="font-bold text-lg">كتالوج المبيعات</h3>
               </div>
               <button onClick={() => setShowGallery(false)} className="hover:bg-slate-800 p-2 rounded-full transition-colors">
                 <X className="w-5 h-5" />
@@ -998,32 +998,32 @@ export default function AIStudioPage() {
                 className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm transition-colors mb-2 shadow-lg"
               >
                 <Columns className="w-4 h-4" />
-                ╪»┘à╪ش ╪ث┘ê┘ ╪╡┘ê╪▒╪ز┘è┘ ┘à╪╣╪د┘ï (┘┘┘â╪ز╪د┘┘ê╪ش)
+                دمج أول صورتين معاً (للكتالوج)
               </button>
               <button 
                 onClick={printGalleryAsCatalogue}
                 className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-sm transition-colors"
               >
                 <Printer className="w-4 h-4" />
-                ╪ز╪ص┘à┘è┘ ╪د┘┘â╪ز╪د┘┘ê╪ش ┘â┘ PDF
+                تحميل الكتالوج كـ PDF
               </button>
               <button 
                 onClick={downloadAllAsZip}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm transition-colors mt-2"
               >
                 <FileArchive className="w-4 h-4" />
-                ╪ز╪ص┘à┘è┘ ╪ش┘à┘è╪╣ ╪د┘╪╡┘ê╪▒ (ZIP)
+                تحميل جميع الصور (ZIP)
               </button>
                 <button 
                   onClick={() => {
-                    if(confirm('┘ç┘ ╪ث┘╪ز ┘à╪ز╪ث┘â╪» ┘à┘ ┘à╪│╪ص ╪ش┘à┘è╪╣ ╪د┘╪╡┘ê╪▒ ╪د┘┘à╪╣┘┘é╪ر ┘à┘ ╪د┘┘à╪╣╪▒╪╢ ╪د┘╪ش╪د┘╪ذ┘è╪ا')) {
+                    if(confirm('هل أنت متأكد من مسح جميع الصور المعلقة من المعرض الجانبي؟')) {
                       setGalleryImages([]);
                       localStorage.removeItem('ai_fashion_generated_images');
                     }
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 py-2 rounded-xl font-bold text-xs transition-colors shadow-sm mt-2"
                 >
-                  ┘à╪│╪ص ╪د┘┘à╪╣╪▒╪╢ ╪د┘╪ش╪د┘╪ذ┘è
+                  مسح المعرض الجانبي
                 </button>
                           </div>
             )}
@@ -1032,7 +1032,7 @@ export default function AIStudioPage() {
             {galleryImages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-slate-400">
                 <ImageIcon className="w-12 h-12 mb-3 opacity-20" />
-                <p className="text-sm font-medium">┘╪د ╪ز┘ê╪ش╪» ╪╡┘ê╪▒ ┘à┘ê┘╪»╪ر ╪ذ╪╣╪»</p>
+                <p className="text-sm font-medium">لا توجد صور مولدة بعد</p>
               </div>
             ) : (
               galleryImages.map((item, i) => {
@@ -1043,11 +1043,11 @@ export default function AIStudioPage() {
                     <img src={pUrl} className="w-full h-auto rounded-xl" alt="Generated" />
                     <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-3">
                       <a href={pUrl} download={`catalogue-${i}.jpg`} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg flex items-center gap-2">
-                        <Download className="w-4 h-4" /> ╪ز╪ص┘à┘è┘
+                        <Download className="w-4 h-4" /> تحميل
                       </a>
                       {!isLegacy && (
                         <button onClick={() => setEditingItem(item)} className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2">
-                          <Edit3 className="w-4 h-4" /> ╪ز╪╣╪»┘è┘ ╪د┘┘╪╡┘ê╪╡
+                          <Edit3 className="w-4 h-4" /> تعديل النصوص
                         </button>
                       )}
                     </div>
