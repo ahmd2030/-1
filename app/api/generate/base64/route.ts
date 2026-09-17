@@ -1,93 +1,67 @@
 import { NextResponse } from 'next/server';
-import { fal } from '@fal-ai/client';
+import { FashnProvider } from '@/lib/ai/fashn';
 
 export const maxDuration = 60;
+
+async function uploadToHost(base64Image: string) {
+  const base64Data = base64Image.split(',')[1];
+  const uploadFormData = new URLSearchParams();
+  uploadFormData.append('key', '6d207e02198a847aa98d0a2a901485a5');
+  uploadFormData.append('action', 'upload');
+  uploadFormData.append('source', base64Data);
+  uploadFormData.append('format', 'json');
+
+  const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+    method: 'POST',
+    body: uploadFormData,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Failed to upload image to temporary host');
+  }
+
+  const uploadData = await uploadRes.json();
+  return uploadData.image.url;
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { garmentImage, modelImage, modelType, style, category, replicateStep, humanImageUrl, garmentDesc } = body;
+    const { garmentImage, modelImage, modelType, style, category, brandName, promoText } = body;
 
-    let garmInput = garmentImage;
-    if (garmInput && !garmInput.startsWith('data:') && !garmInput.startsWith('http')) {
-      garmInput = `data:image/jpeg;base64,${garmInput}`;
+    if (!garmentImage) {
+      return NextResponse.json({ error: 'Missing garmentImage' }, { status: 400 });
     }
 
-    if (replicateStep === 1) {
-      // Step 1: Generate Human Model using FLUX
-      let subjectPrompt = modelType || 'person';
-      if (modelType && (modelType.includes('girl') || modelType === 'woman')) {
-        subjectPrompt += ' with long beautiful hair';
-      }
-      
-      let baseOutfit = "a blank tight white tank top and plain jeans";
-      if (category === "bottoms") baseOutfit = "a plain t-shirt and tight white shorts";
-      if (category === "one-pieces") baseOutfit = "a plain tight white full-body bodysuit or simple white dress";
-      
-      const fluxPrompt = `A hyper-realistic, raw DSLR masterpiece portrait of ${subjectPrompt}, standing upright, wearing ${baseOutfit}. ENVIRONMENT AND SETTING: ${style || 'High-end indoor studio'}. Soft natural skin texture, perfect lighting, full body shot.`;
-      
-      console.log("Creating FLUX prediction on Fal.ai...");
-      const { request_id } = await fal.queue.submit("fal-ai/flux/schnell", {
-        input: {
-          prompt: fluxPrompt,
-          image_size: "portrait_4_3",
-          num_images: 1,
-          sync_mode: false
-        }
-      });
-      
-      return NextResponse.json({
-        id: request_id + '|fal-ai/flux/schnell',
-        provider: 'fal',
-        stage: 'flux',
-        status: 'processing'
-      });
-    } 
-    else if (replicateStep === 2) {
-      // Step 2: Apply Garment using Fashn v1.6 on Fal.ai!
-      
-      let humanInput = humanImageUrl || modelImage;
-      if (typeof humanInput === 'string' && !humanInput.startsWith('data:') && !humanInput.startsWith('http')) {
-        humanInput = `data:image/jpeg;base64,${humanInput}`;
-      }
-      
-      let fashnCategory: "tops" | "bottoms" | "one-pieces" = "tops";
-      if (category === "bottoms") fashnCategory = "bottoms";
-      if (category === "one-pieces") fashnCategory = "one-pieces";
-      
-      console.log("Removing background on Fal.ai to clean flatlay...");
-      let cleanGarmInput = garmInput;
-      try {
-        const bgResult = await fal.subscribe("fal-ai/bria/background/remove", {
-          input: { image_url: garmInput }
-        });
-        if (bgResult?.data?.image?.url) {
-          cleanGarmInput = bgResult.data.image.url;
-        }
-      } catch (err) {
-        console.error("BG removal failed, using original garment", err);
-      }
+    const hostedGarmentUrl = await uploadToHost(garmentImage);
+    let hostedModelUrl = undefined;
 
-      console.log("Creating Fashn v1.6 prediction on Fal.ai...");
-      const { request_id } = await fal.queue.submit("fal-ai/fashn/tryon/v1.6", {
-        input: {
-          model_image: humanInput,
-          garment_image: cleanGarmInput,
-          category: fashnCategory
-        }
-      });
-      
-      return NextResponse.json({
-        id: request_id + '|fal-ai/fashn/tryon/v1.6',
-        provider: 'fal',
-        stage: 'vton',
-        status: 'processing'
-      });
+    if (modelImage) {
+      hostedModelUrl = await uploadToHost(modelImage);
     }
 
-    return NextResponse.json({ error: 'Invalid step' }, { status: 400 });
+    const provider = new FashnProvider();
+    
+    // We pass returnIdOnly: true to immediately return the ID to the frontend.
+    // The frontend will then poll /api/generate/status
+    const result = await provider.generate({
+      garmentImage: hostedGarmentUrl,
+      modelImage: hostedModelUrl,
+      category: category || 'tops',
+      modelType,
+      style,
+      returnIdOnly: true
+    });
+
+    return NextResponse.json({
+      id: result.id,
+      provider: 'fashn',
+      status: 'processing'
+    });
+
   } catch (error: any) {
-    console.error('Generation Error:', error);
+    console.error('Base64 Generation Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to generate image' }, { status: 500 });
   }
 }
