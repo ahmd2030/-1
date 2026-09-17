@@ -17,8 +17,14 @@ export async function GET(request: Request) {
       const apiKey = process.env.REPLICATE_API_TOKEN;
       if (!apiKey) throw new Error('REPLICATE_API_TOKEN missing');
       
-      const replicate = new Replicate({ auth: apiKey });
-      const prediction = await replicate.predictions.get(id);
+      const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        cache: 'no-store'
+      });
+      const prediction = await res.json();
       
       if (prediction.status === 'succeeded') {
         const outputUrl = typeof prediction.output === 'string' ? prediction.output : (prediction.output?.[0] || prediction.output);
