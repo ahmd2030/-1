@@ -63,6 +63,18 @@ export async function POST(request: Request) {
         const b64Data = humanInput.split(',')[1];
         if (b64Data) humanInput = Buffer.from(b64Data, 'base64');
       }
+      
+      console.log("Removing background from garment image...");
+      let cleanGarmInput = finalGarmInput;
+      try {
+        const rembgOutput = await replicate.run(
+          "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
+          { input: { image: finalGarmInput } }
+        );
+        if (rembgOutput) cleanGarmInput = rembgOutput;
+      } catch (err) {
+        console.error("Rembg failed, falling back to original", err);
+      }
 
       console.log("Creating IDM-VTON prediction with native Buffer upload...");
       const prediction = await replicate.predictions.create({
@@ -72,7 +84,7 @@ export async function POST(request: Request) {
           seed: 42,
           steps: 30,
           category: vtonCategory,
-          garm_img: finalGarmInput,
+          garm_img: cleanGarmInput,
           human_img: humanInput,
           garment_des: garmentDesc || "a beautiful fashion garment"
         }
