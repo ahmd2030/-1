@@ -87,7 +87,25 @@ export async function POST(request: Request) {
           "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
           { input: { image: finalGarmInput } }
         ));
-        if (rembgOutput) cleanGarmInput = rembgOutput;
+        if (rembgOutput) {
+          if (typeof rembgOutput === 'string') {
+            cleanGarmInput = rembgOutput;
+          } else if (typeof rembgOutput === 'object' && typeof (rembgOutput as any).getReader === 'function') {
+            const chunks: any[] = [];
+            const reader = (rembgOutput as any).getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            cleanGarmInput = Buffer.concat(chunks);
+          } else if (Array.isArray(rembgOutput)) {
+             cleanGarmInput = rembgOutput[0];
+          } else {
+             // Fallback
+             cleanGarmInput = rembgOutput;
+          }
+        }
       } catch (err) {
         console.error("Rembg failed, falling back to original", err);
       }
