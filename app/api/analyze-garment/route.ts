@@ -149,7 +149,7 @@ FORMAT: You must respond in pure JSON ONLY.
         const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
         
         const prediction = await replicate.predictions.create({
-          version: "b5f621afbfedfa16f0ca582f3a61c4728f32ac171b3052a654949a263690d565",
+          version: "e272157381e2a3bf12df3a8edd1f38d1dbd736bf743c97ac0f4c0c641925a3f3",
           input: {
             image: `data:${mimeType};base64,${base64Data}`,
             prompt: systemPrompt
