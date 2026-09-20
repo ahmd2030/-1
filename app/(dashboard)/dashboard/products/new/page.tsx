@@ -138,8 +138,10 @@ export default function AIStudioPage() {
       reader.onload = async (event) => {
         if (event.target?.result) {
           const b64 = event.target.result as string;
-          setBase64Image(b64);
-          analyzeGarment(b64);
+          // Resize to max 1200px to prevent 413 Request Entity Too Large on Vercel
+          const resized = await resizeImageForAnalysis(b64);
+          setBase64Image(resized);
+          analyzeGarment(resized);
         }
       };
       reader.readAsDataURL(selectedFile);
