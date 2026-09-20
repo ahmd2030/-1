@@ -826,20 +826,16 @@ export default function AIStudioPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {fashnCredits !== null && (
-            <div className={`px-4 py-2.5 shadow-sm rounded-xl font-bold flex items-center gap-2 ${fashnCredits < 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-              {fashnCredits >= 0 && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
-              )}
+          <div className="px-4 py-2.5 border shadow-sm rounded-xl font-bold flex items-center gap-2 bg-amber-50 text-amber-700 border-amber-200">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
               <span className="text-sm">
-                {fashnCredits < 0 ? 'مفتاح Fashn غير صالح' : `النقاط: ${Math.floor(fashnCredits)}`}
+                {fashnCredits === null ? 'جاري التحميل...' : fashnCredits < 0 ? 'مفتاح Fashn خاطئ' : `النقاط: ${Math.floor(fashnCredits)}`}
               </span>
             </div>
-          )}
-          <button onClick={() => setShowGallery(true)} className="px-5 py-2.5 bg-white border border-slate-200 shadow-sm rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
+                    <button onClick={() => setShowGallery(true)} className="px-5 py-2.5 bg-white border border-slate-200 shadow-sm rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-indigo-500" />
             <span>المعرض</span>
             {galleryImages.length > 0 && (
