@@ -51,6 +51,20 @@ export default function AIStudioPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    fetch('/api/credits')
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.credits === 'number') {
+          setFashnCredits(data.credits);
+        } else if (data && data.error) {
+          setFashnCredits(-1);
+        }
+      })
+      .catch(err => setFashnCredits(-1));
+  }, []);
+
+
+  useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('ai_fashion_generated_images') || '[]');
       const normalized = stored.map((item: any) => {
