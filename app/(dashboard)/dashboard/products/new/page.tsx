@@ -757,7 +757,7 @@ export default function AIStudioPage() {
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">ديكور الخلفية والإضاءة</label>
                 <textarea value={stylePrompt} onChange={e=>setStylePrompt(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 text-left resize-none h-24 focus:ring-2 focus:ring-indigo-500 transition-all text-sm" dir="ltr" placeholder="Describe the scene..."></textarea>
-                <button onClick={analyzeGarment} disabled={isAnalyzing || !base64Image} className="mt-2 w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-bold transition-colors">
+                <button onClick={(e) => { e.preventDefault(); if (base64Image) analyzeGarment(base64Image); }} disabled={isAnalyzing || !base64Image} className="mt-2 w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-bold transition-colors">
                   {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   تحليل ذكي (Auto)
                 </button>
@@ -847,15 +847,6 @@ export default function AIStudioPage() {
 
           {/* MAIN ACTIONS */}
           <div className="mt-4">
-            {isBulkMode ? (
-              <button 
-                onClick={handleBulkGenerate} 
-                disabled={loading || queue.length === 0}
-                className="w-full py-4 rounded-2xl font-extrabold text-lg transition-all shadow-xl shadow-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white disabled:opacity-50 transform hover:-translate-y-1"
-              >
-                {loading ? `جاري المعالجة (${processingIndex + 1}/${queue.length})...` : `توليد جماعي (${queue.length} صور) 🚀`}
-              </button>
-            ) : (
               <button 
                 onClick={handleGenerate} 
                 disabled={loading || !base64Image}
@@ -873,7 +864,6 @@ export default function AIStudioPage() {
                   </>
                 )}
               </button>
-            )}
           </div>
 
         </div>
@@ -946,10 +936,7 @@ export default function AIStudioPage() {
                       <Printer className="w-4 h-4" />
                       تحميل الكتالوج (PDF)
                     </button>
-                    <button onClick={downloadZip} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-transform hover:-translate-y-0.5">
-                      <FileArchive className="w-4 h-4" />
-                      تحميل جميع الصور (ZIP)
-                    </button>
+
                     <button onClick={() => {
                         if (confirm('هل أنت متأكد من مسح المعرض؟')) {
                           setGalleryImages([]);
