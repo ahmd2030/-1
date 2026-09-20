@@ -4,7 +4,7 @@ export async function GET() {
   try {
     const apiKey = process.env.FASHN_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 400 });
+      return NextResponse.json({ credits: -1, reason: 'no_key' });
     }
 
     const res = await fetch('https://api.fashn.ai/v1/credits', {
@@ -14,14 +14,24 @@ export async function GET() {
       cache: 'no-store'
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Failed to fetch credits: ${err}`);
+    const raw = await res.json();
+    
+    // Handle all possible field names Fashn might use
+    const credits = 
+      raw.total_credits ?? 
+      raw.credits ?? 
+      raw.balance ?? 
+      raw.remaining ?? 
+      null;
+    
+    if (credits !== null) {
+      return NextResponse.json({ credits: Number(credits) });
     }
 
-    const data = await res.json();
-    return NextResponse.json({ credits: data.total_credits || data.credits || 0, raw: data });
+    // Return raw data so we can debug in browser
+    return NextResponse.json({ credits: -1, reason: 'unknown_format', raw });
+    
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ credits: -1, reason: error.message });
   }
 }
