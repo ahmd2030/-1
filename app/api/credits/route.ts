@@ -20,7 +20,7 @@ export async function GET() {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ credits: data.total_credits || data.credits || 0, raw: data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
