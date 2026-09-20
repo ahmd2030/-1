@@ -41,11 +41,12 @@ export class FashnProvider implements AIProvider {
 
       const inputs: any = {
         product_image: options.garmentImage,
-        category: options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops"
       };
 
       if (options.modelImage) {
         inputs.model_image = options.modelImage;
+        // category is only supported by tryon-max model (when model image is provided)
+        inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
         inputs.prompt = promptText;
       }
