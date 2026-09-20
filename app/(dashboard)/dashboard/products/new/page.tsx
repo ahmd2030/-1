@@ -43,6 +43,9 @@ export default function AIStudioPage() {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -887,7 +890,64 @@ export default function AIStudioPage() {
             </div>
           ) : galleryImages.length > 0 ? (
             <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
-              <img src={galleryImages[0].previewUrl || galleryImages[0].cleanUrl} className="max-h-[70vh] object-contain rounded-2xl shadow-2xl border-4 border-white" alt="Generated Output" />
+              
+              <div 
+                className="relative w-full max-w-xl aspect-[3/4] max-h-[70vh] mx-auto overflow-hidden rounded-2xl shadow-2xl border-4 border-white cursor-ew-resize select-none"
+                onMouseMove={(e) => {
+                  if (!isDragging) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+                  setSliderPosition((x / rect.width) * 100);
+                }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+                onMouseDown={() => setIsDragging(true)}
+                onTouchMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = Math.max(0, Math.min(e.touches[0].clientX - rect.left, rect.width));
+                  setSliderPosition((x / rect.width) * 100);
+                }}
+                dir="ltr"
+              >
+                {/* 1. Generated image (Background) */}
+                <img 
+                  src={galleryImages[0].previewUrl || galleryImages[0].cleanUrl} 
+                  className="absolute inset-0 w-full h-full object-contain bg-slate-100 pointer-events-none" 
+                  alt="Generated Output"
+                />
+
+                {/* 2. Original image (Foreground, masked) */}
+                <div 
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                >
+                  <img 
+                    src={base64Image || ""} 
+                    className="absolute inset-0 w-full h-full object-contain bg-slate-50 opacity-95 pointer-events-none" 
+                    alt="Original Input"
+                  />
+                  {/* Label for Original */}
+                  <div className="absolute top-4 left-4 bg-black/60 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md">
+                    الأصلية
+                  </div>
+                </div>
+
+                {/* Label for Generated (Always visible underneath the mask) */}
+                <div className="absolute top-4 right-4 bg-indigo-600/80 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md z-0">
+                  النتيجة
+                </div>
+
+                {/* 3. Slider handle */}
+                <div 
+                  className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] flex items-center justify-center z-10 pointer-events-none"
+                  style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
+                >
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg text-indigo-500 border border-indigo-100">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18-6-6 6-6"/><path d="m15 18 6-6-6-6"/></svg>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-8 flex gap-4">
                 <button onClick={() => {
                   const link = document.createElement('a');
