@@ -35,20 +35,19 @@ export class FashnProvider implements AIProvider {
       }
 
       // Restructured to force the AI to process the ENVIRONMENT first, then the SUBJECT.
-      const promptText = `SUBJECT: A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} ${categoryText}. 
+      const promptText = `SUBJECT: A highly detailed, professional FULL-BODY fashion photography shot of ${subjectPrompt} wearing the exact ${categoryText}. 
       ENVIRONMENT AND SETTING: ${options.style || 'High-end indoor studio'}. 
-      CRITICAL INSTRUCTIONS: DO NOT MIRROR OR FLIP THE GARMENT. Any text, numbers, or logos on the clothing MUST remain exactly as they appear in the original image (un-mirrored). The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. DO NOT generate sitting, kneeling, crawling, or lying down poses. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Hyper-realistic, ultra detailed 8k, raw photo, DSLR, Fujifilm XT4, soft natural skin texture, masterpiece.`;
+      CRITICAL INSTRUCTIONS: ABSOLUTELY PRESERVE THE EXACT COLOR, TEXTURE, FABRIC, AND CUT OF THE UPLOADED GARMENT. DO NOT ALTER OR CHANGE ANY DETAILS OF THE GARMENT'S DESIGN. DO NOT MIRROR OR FLIP THE GARMENT. Any text, numbers, or logos on the clothing MUST remain exactly as they appear in the original image. The model MUST BE STANDING UPRIGHT on their feet. The model MUST be wearing fashionable shoes matching the outfit. DO NOT generate barefoot models. Full body must be clearly visible from head to shoes to show the garment's exact length and fit. The models must have natural, candid lifestyle poses. The garments MUST NOT have any price tags, labels, text, or hangers. Hyper-realistic, ultra detailed 8k, raw photo, DSLR, Fujifilm XT4, masterpiece.`;
 
       const inputs: any = {
         product_image: options.garmentImage,
+        category: options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops"
       };
 
       if (options.modelImage) {
         inputs.model_image = options.modelImage;
-        inputs.category = options.category === "tops" || options.category === "bottoms" || options.category === "one-pieces" ? options.category : "tops";
       } else {
         inputs.prompt = promptText;
-        
       }
 
       const response = await fetch('https://api.fashn.ai/v1/run', {

@@ -19,37 +19,46 @@ export async function POST(req: Request) {
       });
     }
 
-    const systemPrompt = `You are an AI that acts as both a world-class fashion art director AND a precise data-extraction engine.
-Analyze the provided clothing image carefully.
+    const systemPrompt = `You are a world-class fashion art director and precise data-extraction engine.
+Analyze the clothing image VERY CAREFULLY.
 
 Instructions:
 1. "model_type":
-   - Based on the clothing style, size, and gender cues, choose the EXACT ONE matching ID from this list:
-     "baby girl" (for 9 months girl), "baby boy" (for 9 months boy),
-     "toddler girl" (for 3 years girl), "toddler boy" (for 3 years boy),
-     "young girl" (for 6-12 years girl), "young boy" (for 6-12 years boy),
-     "teen girl" (for 16 years girl), "teen boy" (for 16 years boy),
-     "woman" (for adult females), "man" (for adult males).
-2. "garment_category":
-   - Choose EXACTLY ONE from this list: "tops" (shirts, jackets, hoodies), "bottoms" (pants, skirts), "one-pieces" (dresses, jumpsuits).
-3. "prompt":
-   - Write a master-level, breathtaking, photorealistic fashion photography prompt for the model wearing this item.
-   - STRICT REQUIREMENT: You MUST choose the background environment LOGICALLY based on the exact type of garment. 
-     * If the item is pajamas, sleepwear, or baby onesies, the background MUST be an indoor bedroom, cozy nursery, or cozy indoor setting.
-     * If the item is swimwear, the background MUST be a beach or pool.
-     * If the item is a winter coat, the background MUST be snowy or cold outdoors.
-     * If the item is casual/formal, choose a fitting luxury location (e.g., 'luxury cafe', 'Italian villa').
-     Act as a logical fashion production director.
-   - End with: 'Natural candid pose, smiling'.
-4. "extracted_size":
-   - Zoom in on any visible tags, labels, or text on the garment.
-   - If you see a size (like S, M, L, XL, 3-6M, 4Y, 120cm, etc.), return exactly that string. If nothing is found, return an empty string "".
-5. "extracted_sku":
-   - Zoom in on any visible text. If you see a product code, item number, or SKU (like DR-7729, ABC-123), return exactly that string. If nothing is found, return "".
-6. "marketing_desc":
-   - ${generateMarketingDesc ? "Write a short, elegant 2-sentence Arabic marketing description for this item to be placed on a fashion catalogue." : "Leave empty."}
+   - Look at the garment's size and style. You MUST classify the exact age group correctly.
+   - Choose EXACTLY ONE from this list:
+     "baby girl" (0-24 months girl, onesies, baby rompers),
+     "baby boy" (0-24 months boy, onesies, baby rompers),
+     "toddler girl" (2-5 years girl), "toddler boy" (2-5 years boy),
+     "young girl" (6-12 years girl), "young boy" (6-12 years boy),
+     "teen girl" (13-17 years girl), "teen boy" (13-17 years boy),
+     "woman" (adult females), "man" (adult males).
+   - If the label says "0-12M" or it is a baby onesie, YOU MUST CHOOSE "baby boy" or "baby girl". DO NOT CHOOSE TODDLER.
 
-FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
+2. "garment_category":
+   - Choose EXACTLY ONE from this list:
+     "tops" (shirts, jackets, hoodies),
+     "bottoms" (pants, skirts),
+     "one-pieces" (dresses, jumpsuits, baby onesies, rompers).
+
+3. "prompt":
+   - Write a master-level, photorealistic fashion photography prompt for the model wearing this item.
+   - CRITICAL REQUIREMENT: The background environment MUST BE 100% LOGICAL for the garment type.
+     * If it is a baby onesie, pajamas, sleepwear, or underwear, the background MUST be an "indoor cozy bedroom" or "nursery room". DO NOT put pajamas or baby onesies on a street or outdoors!
+     * If it is swimwear, it MUST be a beach or pool.
+     * If it is a winter coat, it MUST be snowy outdoors.
+     * Otherwise, choose a fitting luxury location.
+   - End with: 'Natural candid pose, smiling'.
+
+4. "extracted_size":
+   - Zoom in on tags/text. Extract the exact size string (e.g., "0-12M", "M", "3-4Y"). If none, return "".
+
+5. "extracted_sku":
+   - Zoom in on tags/text. Extract product code (e.g., "V6119"). If none, return "".
+
+6. "marketing_desc":
+   - ${generateMarketingDesc ? "Write a short, elegant 2-sentence Arabic marketing description." : "Leave empty."}
+
+FORMAT: You must respond in pure JSON ONLY.
 {
   "model_type": "...",
   "garment_category": "...",
@@ -74,7 +83,7 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
     // 1. Try Gemini First
     if (geminiKey) {
       const genAI = new GoogleGenerativeAI(geminiKey);
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.5-flash'];
+      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
       
       for (const m of modelsToTry) {
         try {
