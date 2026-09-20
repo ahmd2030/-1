@@ -42,6 +42,7 @@ export default function AIStudioPage() {
   
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [fashnCredits, setFashnCredits] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -811,6 +812,15 @@ export default function AIStudioPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {fashnCredits !== null && (
+            <div className="px-4 py-2.5 bg-amber-50 border border-amber-200 shadow-sm rounded-xl font-bold text-amber-700 flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span className="text-sm">النقاط: {Math.floor(fashnCredits)}</span>
+            </div>
+          )}
           <button onClick={() => setShowGallery(true)} className="px-5 py-2.5 bg-white border border-slate-200 shadow-sm rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-indigo-500" />
             <span>المعرض</span>
