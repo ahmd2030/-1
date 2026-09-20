@@ -738,7 +738,9 @@ export default function AIStudioPage() {
       setShowGallery(true);
       
     } catch (e: any) {
+      console.error("Generation Error:", e);
       setError(e.message || "حدث خطأ غير متوقع");
+      toast.error(e.message || "فشل التوليد، يرجى المحاولة مرة أخرى", { duration: 8000 });
     } finally {
       setLoading(false);
     }
