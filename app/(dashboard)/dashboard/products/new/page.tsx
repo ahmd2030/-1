@@ -651,38 +651,38 @@ export default function AIStudioPage() {
   };
 
   return (
-    <div className="flex relative min-h-[calc(100vh-5rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden border bg-white shadow-lg">
+    <div className="flex relative min-h-[calc(100vh-5rem)] max-w-6xl mx-auto md:rounded-2xl overflow-hidden md:border bg-white shadow-none md:shadow-lg">
       
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="flex flex-col flex-1 relative min-w-0 bg-slate-50">
         
-        <div className="bg-slate-900 text-white px-6 py-5 flex flex-row-reverse justify-between items-center z-10 shadow-md">
+        <div className="bg-slate-900 text-white px-4 md:px-6 py-4 md:py-5 flex flex-col sm:flex-row-reverse justify-between items-center gap-4 z-10 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="text-center sm:text-right">
               <h2 className="font-bold text-xl">استوديو الماركة (إصدار المبيعات)</h2>
               <p className="text-sm text-slate-400 mt-1">ذكاء اصطناعي فائق + إدارة الكتالوج</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-indigo-500/20 hidden sm:flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-indigo-300" />
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-row-reverse">
+          <div className="flex items-center gap-3 flex-row-reverse w-full sm:w-auto justify-between sm:justify-end">
             <button 
               onClick={() => setShowGallery(!showGallery)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-indigo-600 sm:bg-slate-800 hover:bg-indigo-500 sm:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all shadow-sm"
             >
               <ImageIcon className="w-5 h-5" />
               <span>معرض المبيعات</span>
               {galleryImages.length > 0 && (
-                <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
+                <span className="bg-white/20 sm:bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">{galleryImages.length}</span>
               )}
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 flex justify-center">
-          <div className="max-w-2xl w-full space-y-8">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-8 flex justify-center">
+          <div className="max-w-2xl w-full space-y-4 sm:space-y-8">
             
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 text-right mb-4 flex items-center justify-end gap-2">
@@ -781,7 +781,7 @@ export default function AIStudioPage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">المقاسات (مستخرج آلياً)</label>
                       <textarea value={sizes} onChange={e=>setSizes(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-left resize-none h-[42px] focus:h-24 transition-all" dir="ltr" placeholder="S.M.L 
@@ -984,7 +984,7 @@ export default function AIStudioPage() {
       </div>
 
       {showGallery && (
-        <div className="w-96 bg-white border-l shadow-2xl flex flex-col z-20 absolute left-0 top-0 bottom-0 animate-in slide-in-from-left-8">
+        <div className="w-full sm:w-96 bg-white border-l shadow-2xl flex flex-col z-50 absolute left-0 right-0 sm:right-auto top-0 bottom-0 animate-in slide-in-from-bottom-8 sm:slide-in-from-left-8">
           <div className="p-5 bg-slate-900 text-white flex flex-col gap-4 shadow-md">
             <div className="flex flex-row-reverse justify-between items-center w-full">
               <div className="flex items-center gap-2">
