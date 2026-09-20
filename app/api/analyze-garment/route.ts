@@ -23,14 +23,16 @@ export async function POST(req: Request) {
 Analyze the provided clothing image carefully.
 
 Instructions:
-1. "extracted_category":
+1. "model_type":
    - Based on the clothing style, size, and gender cues, choose the EXACT ONE matching ID from this list:
      "baby girl" (for 9 months girl), "baby boy" (for 9 months boy),
      "toddler girl" (for 3 years girl), "toddler boy" (for 3 years boy),
      "young girl" (for 6-12 years girl), "young boy" (for 6-12 years boy),
      "teen girl" (for 16 years girl), "teen boy" (for 16 years boy),
      "woman" (for adult females), "man" (for adult males).
-2. "prompt":
+2. "garment_category":
+   - Choose EXACTLY ONE from this list: "tops" (shirts, jackets, hoodies), "bottoms" (pants, skirts), "one-pieces" (dresses, jumpsuits).
+3. "prompt":
    - Write a master-level, breathtaking, photorealistic fashion photography prompt for the model wearing this item.
    - STRICT REQUIREMENT: You MUST choose the background environment LOGICALLY based on the exact type of garment. 
      * If the item is pajamas, sleepwear, or baby onesies, the background MUST be an indoor bedroom, cozy nursery, or cozy indoor setting.
@@ -39,17 +41,18 @@ Instructions:
      * If the item is casual/formal, choose a fitting luxury location (e.g., 'luxury cafe', 'Italian villa').
      Act as a logical fashion production director.
    - End with: 'Natural candid pose, smiling'.
-3. "extracted_size":
+4. "extracted_size":
    - Zoom in on any visible tags, labels, or text on the garment.
    - If you see a size (like S, M, L, XL, 3-6M, 4Y, 120cm, etc.), return exactly that string. If nothing is found, return an empty string "".
-4. "extracted_sku":
+5. "extracted_sku":
    - Zoom in on any visible text. If you see a product code, item number, or SKU (like DR-7729, ABC-123), return exactly that string. If nothing is found, return "".
-5. "marketing_desc":
+6. "marketing_desc":
    - ${generateMarketingDesc ? "Write a short, elegant 2-sentence Arabic marketing description for this item to be placed on a fashion catalogue." : "Leave empty."}
 
 FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
 {
-  "extracted_category": "...",
+  "model_type": "...",
+  "garment_category": "...",
   "prompt": "...",
   "extracted_size": "...",
   "extracted_sku": "...",
@@ -172,7 +175,8 @@ FORMAT: You must respond in pure JSON ONLY. No markdown, no intro.
       size: parsed.extracted_size || "", 
       sku: parsed.extracted_sku || "",
       marketing_desc: parsed.marketing_desc || "",
-      category: parsed.extracted_category || ""
+      model_type: parsed.model_type || "",
+      garment_category: parsed.garment_category || ""
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
