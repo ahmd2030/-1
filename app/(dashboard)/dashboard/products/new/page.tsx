@@ -254,115 +254,98 @@ export default function AIStudioPage() {
             else resolve(canvas.toDataURL('image/jpeg', 0.95));
           };
           imgBack.onload = () => {
-            // Create a gorgeous 1080x1350 template (Instagram portrait ratio)
+            // High-end Split Lookbook Layout (1080x1350)
             canvas.width = 1080;
             canvas.height = 1350;
             
-            // Background
-            ctx.fillStyle = "#f8fafc";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Left side (Front model) - Large
-            // Right side (Back model) - Smaller inset + original elements
+            const splitX = canvas.width / 2;
             
-            // Draw Front Model (Left 65%)
-            const splitX = canvas.width * 0.65;
-            // Source aspect ratio
-            const frontRatio = imgFront.width / imgFront.height;
-            let sxFront = 0, syFront = 0, swFront = imgFront.width, shFront = imgFront.height;
-            // Calculate cover crop for 65% width
-            const targetFrontRatio = splitX / canvas.height;
-            if (frontRatio > targetFrontRatio) {
-               swFront = shFront * targetFrontRatio;
-               sxFront = (imgFront.width - swFront) / 2;
-            } else {
-               shFront = swFront / targetFrontRatio;
-               syFront = (imgFront.height - shFront) / 2;
-            }
-            ctx.drawImage(imgFront, sxFront, syFront, swFront, shFront, 0, 0, splitX, canvas.height);
+            // Helper to draw cover crop
+            const drawCover = (img, x, y, w, h) => {
+              const imgRatio = img.width / img.height;
+              const targetRatio = w / h;
+              let sx = 0, sy = 0, sw = img.width, sh = img.height;
+              if (imgRatio > targetRatio) {
+                 sw = sh * targetRatio;
+                 sx = (img.width - sw) / 2;
+              } else {
+                 sh = sw / targetRatio;
+                 sy = (img.height - sh) / 2;
+              }
+              ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+            };
 
-            // Draw shadow separator
-            ctx.shadowColor = 'rgba(0,0,0,0.2)';
-            ctx.shadowBlur = 30;
-            ctx.shadowOffsetX = -10;
-            ctx.fillRect(splitX, 0, canvas.width - splitX, canvas.height);
-            ctx.shadowColor = 'transparent'; // reset
+            // Draw Models
+            drawCover(imgFront, 0, 0, splitX, canvas.height);
+            drawCover(imgBack, splitX, 0, splitX, canvas.height);
 
-            // Right side background
+            // Elegant white separator
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(splitX, 0, canvas.width - splitX, canvas.height);
+            ctx.fillRect(splitX - 4, 0, 8, canvas.height);
 
-            // Draw Back Model (Right side, center vertically, smaller)
-            const rightWidth = canvas.width - splitX;
-            const backHeight = canvas.height * 0.4;
-            const backWidth = rightWidth * 0.9;
-            const bx = splitX + (rightWidth - backWidth) / 2;
-            const by = (canvas.height - backHeight) / 2;
-            
-            // Draw rounded rect mask for Back image
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(bx, by, backWidth, backHeight, 20);
-            ctx.clip();
-            ctx.drawImage(imgBack, 0, 0, imgBack.width, imgBack.height, bx, by, backWidth, backHeight);
-            ctx.restore();
-
-            // Outline for Back image
-            ctx.strokeStyle = "#e2e8f0";
-            ctx.lineWidth = 4;
-            ctx.stroke();
-
-            // Text
+            // Overlay Text
             if (requiresText) {
-              // Custom text drawing for collage layout
-              const padding = 40;
-              ctx.fillStyle = "#1e293b"; 
-              ctx.font = `bold 40px Arial, sans-serif`;
+              const pillW = 720;
+              const pillH = 160;
+              const pillX = (canvas.width - pillW) / 2;
+              const pillY = canvas.height - pillH - 60;
+              
+              // Shadow
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+              ctx.shadowBlur = 30;
+              ctx.shadowOffsetY = 15;
+              
+              // Pill background
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.roundRect(pillX, pillY, pillW, pillH, 50);
+              ctx.fill();
+              
+              // Reset shadow
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetY = 0;
+              
+              // Left: Brand
+              ctx.fillStyle = "#0f172a";
+              ctx.font = "bold 40px Arial, sans-serif";
+              ctx.textAlign = "left";
+              ctx.textBaseline = "middle";
+              ctx.fillText(brandName || "ماركتي", pillX + 60, pillY + pillH / 2);
+              
+              // Right: SKU & Sizes
               ctx.textAlign = "right";
-              ctx.textBaseline = "top";
-              if (customCode || productCode) {
-                 ctx.fillText(customCode || productCode, canvas.width - padding, padding + 100);
+              const sku = customCode || productCode;
+              if (sku) {
+                 ctx.font = "bold 32px Arial, sans-serif";
+                 ctx.fillText(sku, pillX + pillW - 60, pillY + pillH / 2 - 20);
+              }
+              const sz = customSizes || sizes;
+              if (sz) {
+                 ctx.fillStyle = "#64748b";
+                 ctx.font = "24px Arial, sans-serif";
+                 ctx.fillText(sz, pillX + pillW - 60, pillY + pillH / 2 + 25);
               }
               
-              ctx.fillStyle = "#475569"; 
-              ctx.font = `bold 30px Arial, sans-serif`;
-              if (customSizes || sizes) {
-                 const sizeArray = (customSizes || sizes).split(/[,/|،\n]/).map(s => s.trim()).filter(Boolean);
-                 let sizeY = padding + 160;
-                 sizeArray.forEach(sizeLine => {
-                    ctx.fillText(sizeLine, canvas.width - padding, sizeY);
-                    sizeY += 40;
-                 });
+              // Handle logo separately if exists
+              if (base64Logo) {
+                const logoImg = new Image();
+                logoImg.crossOrigin = "anonymous";
+                logoImg.onload = () => {
+                  const logoMaxW = 160;
+                  const logoMaxH = 100;
+                  const ratio = Math.min(logoMaxW / logoImg.width, logoMaxH / logoImg.height);
+                  const w = logoImg.width * ratio;
+                  const h = logoImg.height * ratio;
+                  // Draw logo in the center of the pill
+                  ctx.drawImage(logoImg, pillX + (pillW - w) / 2, pillY + (pillH - h) / 2, w, h);
+                  resolve(canvas.toDataURL('image/jpeg', 0.95));
+                };
+                logoImg.onerror = () => resolve(canvas.toDataURL('image/jpeg', 0.95));
+                logoImg.src = base64Logo;
+              } else {
+                resolve(canvas.toDataURL('image/jpeg', 0.95));
               }
-
-              if (customDesc || marketingDesc) {
-                  ctx.font = `bold 35px "Tajawal", "Cairo", sans-serif`;
-                  ctx.fillStyle = '#1e293b';
-                  ctx.textAlign = 'center';
-                  ctx.direction = 'rtl';
-                  const words = (customDesc || marketingDesc).split(' ');
-                  let line = '';
-                  let y = canvas.height - 150;
-                  const maxW = canvas.width - 100;
-                  
-                  ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-                  ctx.shadowBlur = 15;
-                  
-                  for (let n = 0; n < words.length; n++) {
-                    const testLine = line + words[n] + ' ';
-                    const metrics = ctx.measureText(testLine);
-                    if (metrics.width > maxW && n > 0) {
-                      ctx.fillText(line, canvas.width / 2, y);
-                      line = words[n] + ' ';
-                      y += 45;
-                    } else {
-                      line = testLine;
-                    }
-                  }
-                  ctx.fillText(line, canvas.width / 2, y);
-                  ctx.shadowColor = 'transparent';
-              }
-              drawLogoAndResolve(ctx, canvas, resolve, frontUrl, canvas.width - 40 - 150, 40, 150);
             } else {
               resolve(canvas.toDataURL('image/jpeg', 0.95));
             }
