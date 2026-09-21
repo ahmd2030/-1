@@ -44,6 +44,7 @@ export default function AIStudioPage() {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [fashnCredits, setFashnCredits] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [dualMode, setDualMode] = useState<'front-back' | 'two-colors'>('front-back');
   
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -684,7 +685,7 @@ export default function AIStudioPage() {
       let backUrl = "";
       if (base64BackImage) {
         toast.success("تم توليد الأمام، جاري توليد الخلف...", { duration: 5000 });
-        const backPrompt = `Model is facing backwards, walking away from the camera, showing the BACK of the garment. ${stylePrompt}`;
+        const backPrompt = dualMode === 'front-back' ? `Model is facing backwards, walking away from the camera, showing the BACK of the garment. ${stylePrompt}` : stylePrompt;
         const resBack = await fetch('/api/generate/base64', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -840,6 +841,23 @@ export default function AIStudioPage() {
               صور المنتج (الأمام والخلف)
             </h2>
             
+                        <div className="flex items-center justify-between mb-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
+              <span className="text-sm font-semibold text-slate-600">طبيعة الصور المرفوعة:</span>
+              <div className="flex bg-slate-200 p-1 rounded-md">
+                <button 
+                  onClick={() => setDualMode('front-back')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-colors ${dualMode === 'front-back' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  أمام وخلف
+                </button>
+                <button 
+                  onClick={() => setDualMode('two-colors')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-colors ${dualMode === 'two-colors' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  تشكيلة ألوان
+                </button>
+              </div>
+            </div>
             <div className="flex gap-4">
               {/* FRONT IMAGE UPLOAD */}
               <div className="flex-1">
