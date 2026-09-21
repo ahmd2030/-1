@@ -261,7 +261,7 @@ export default function AIStudioPage() {
             const splitX = canvas.width / 2;
             
             // Helper to draw cover crop
-            const drawCover = (img, x, y, w, h) => {
+            const drawCover = (img: HTMLImageElement, x: number, y: number, w: number, h: number) => {
               const imgRatio = img.width / img.height;
               const targetRatio = w / h;
               let sx = 0, sy = 0, sw = img.width, sh = img.height;
