@@ -912,14 +912,7 @@ export default function AIStudioPage() {
                 <label className="block text-xs font-bold text-slate-500 mb-2 text-center">المنتج من الأمام</label>
                 {!base64Image ? (
                   <label className="border-2 border-dashed border-indigo-200 rounded-2xl h-32 flex flex-col items-center justify-center bg-indigo-50/50 hover:bg-indigo-50 transition-colors cursor-pointer group">
-                    <input type="file" accept="image/*" onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => setBase64Image(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }} className="hidden" />
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                     <Upload className="w-6 h-6 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-bold text-indigo-900">رفع الأمام</span>
                   </label>
@@ -929,14 +922,7 @@ export default function AIStudioPage() {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center backdrop-blur-sm gap-2">
                       <label className="text-white text-xs font-bold cursor-pointer hover:underline">
                         تغيير
-                        <input type="file" accept="image/*" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => setBase64Image(ev.target?.result as string);
-                            reader.readAsDataURL(file);
-                          }
-                        }} className="hidden" />
+                        <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                       </label>
                       <button onClick={() => setBase64Image(null)} className="text-red-300 text-xs font-bold hover:underline">حذف</button>
                     </div>
