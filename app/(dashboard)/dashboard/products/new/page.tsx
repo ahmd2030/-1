@@ -45,6 +45,7 @@ export default function AIStudioPage() {
   const [fashnCredits, setFashnCredits] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dualMode, setDualMode] = useState<'front-back' | 'two-colors'>('front-back');
+  const [autoSplit, setAutoSplit] = useState(false);
   
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -139,10 +140,43 @@ export default function AIStudioPage() {
       reader.onload = async (event) => {
         if (event.target?.result) {
           const b64 = event.target.result as string;
-          // Resize to max 1200px to prevent 413 Request Entity Too Large on Vercel
-          const resized = await resizeImageForAnalysis(b64);
-          setBase64Image(resized);
-          analyzeGarment(resized);
+          if (dualMode === 'two-colors' && autoSplit) {
+            // MAGIC AUTO-SPLIT BEHIND THE SCENES
+            const img = new Image();
+            img.onload = async () => {
+              const canvas1 = document.createElement('canvas');
+              const canvas2 = document.createElement('canvas');
+              canvas1.width = img.width / 2;
+              canvas1.height = img.height;
+              canvas2.width = img.width / 2;
+              canvas2.height = img.height;
+              
+              const ctx1 = canvas1.getContext('2d');
+              const ctx2 = canvas2.getContext('2d');
+              
+              if (ctx1 && ctx2) {
+                ctx1.drawImage(img, 0, 0, img.width / 2, img.height, 0, 0, img.width / 2, img.height);
+                ctx2.drawImage(img, img.width / 2, 0, img.width / 2, img.height, 0, 0, img.width / 2, img.height);
+                
+                const b64Left = canvas1.toDataURL('image/jpeg', 0.95);
+                const b64Right = canvas2.toDataURL('image/jpeg', 0.95);
+                
+                const resizedLeft = await resizeImageForAnalysis(b64Left);
+                const resizedRight = await resizeImageForAnalysis(b64Right);
+                
+                setBase64Image(resizedLeft);
+                setBase64BackImage(resizedRight); // Automatically fill the second box
+                
+                toast.success('تم قص الصورة خلف الكواليس بنجاح! ✂️', { duration: 4000 });
+                analyzeGarment(resizedLeft);
+              }
+            };
+            img.src = b64;
+          } else {
+            const resized = await resizeImageForAnalysis(b64);
+            setBase64Image(resized);
+            analyzeGarment(resized);
+          }
         }
       };
       reader.readAsDataURL(selectedFile);
@@ -858,6 +892,20 @@ export default function AIStudioPage() {
                 </button>
               </div>
             </div>
+            {dualMode === 'two-colors' && (
+              <div className="mb-4 flex items-center gap-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                <input 
+                  type="checkbox" 
+                  id="autoSplit" 
+                  checked={autoSplit} 
+                  onChange={(e) => setAutoSplit(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded"
+                />
+                <label htmlFor="autoSplit" className="text-sm font-bold text-indigo-800 cursor-pointer">
+                  الصورة تحتوي على الطقمين معاً (قص آلي خلف الكواليس ✂️)
+                </label>
+              </div>
+            )}
             <div className="flex gap-4">
               {/* FRONT IMAGE UPLOAD */}
               <div className="flex-1">
